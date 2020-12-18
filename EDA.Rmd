@@ -1,0 +1,118 @@
+---
+title: "EDA"
+output: html_notebook
+---
+
+#Exploring data and prototyping plotting options
+
+```{r libraries}
+library(tidyverse)
+library(lubridate)
+library(leaflet) #for mapping
+library(maps) # to create UK bounds
+library(hrbrthemes)
+library(gcookbook)
+library(paletteer)
+library(ggsci)
+library(showtext)
+library(plotly)
+```
+
+##Load Data
+
+```{r}
+sites <- read_csv("Data/Sites.csv")
+site_data <- list()
+for(i in 1:length(sites$Site_ID)){
+  site_data[[i]] <- read_csv(paste("Data/Site_",sites[i,]$Site_ID,".csv",sep=""))
+} 
+  names(site_data) <- sites$Site_ID
+```
+
+
+## Mapping station
+
+```{r}
+
+bounds <- map("world", "UK", fill = TRUE, plot = FALSE) # create UK bounds  
+# https://stackoverflow.com/questions/49512240/how-to-assign-popup-on-map-polygon-that-corresponds-with-the-country-r-leaflet
+
+map <- leaflet(options=leafletOptions(dragging=FALSE,minZoom = 5,maxZoom = 13)) %>%
+       addProviderTiles("CartoDB") %>%
+       addPolygons(data = bounds, group = "Countries", 
+                   color = "red", 
+                    weight = 2,
+                    fillOpacity = 0.0) %>%
+      addCircleMarkers(~Longitude, ~Latitude,data=sites,
+                       color="navy",
+                       radius=5,
+                       popup = ~Site_Name)
+
+
+map
+```
+
+
+
+## Plotting
+
+```{r}
+
+font_add_google("Titillium Web","Titillium")
+font_add("Arial Narrow","Arial Narrow")
+
+showtext_auto()
+
+a <- site_data$`643` %>% mutate(Date=as_date(ob_time)) %>%
+  group_by(Date) %>% summarise(avg_temp=max(air_temperature)) %>% mutate(id="a")
+
+
+b <- site_data$`235` %>% mutate(Date=as_date(ob_time)) %>%
+  group_by(Date) %>% summarise(avg_temp=max(air_temperature))  %>% mutate(id="b")
+
+plot_data <- rbind(a,b) %>% mutate(id2=id)
+
+p<- plot_data %>%
+  ggplot(aes(x=Date,y=avg_temp,colour=id2)) + geom_line() +
+  theme_ipsum() +
+  theme(legend.position="bottom",
+        plot.title = element_text(size=16,face="bold",colour = "#272928",family="Titillium"),
+        plot.subtitle =element_text(size=10,colour = "azure4",family="Titillium"),
+        plot.caption =  element_text(size=10,colour = "azure4",family="Titillium"),
+        legend.text = element_text(size=10,colour = "#272928",family="Titillium")) +
+  labs(title="This is a title") +
+  scale_color_paletteer_d("ggsci::category10_d3")
+
+ggplotly(p)
+
+```
+
+
+
+
+Hutton Criteria
+```{r}
+
+date <- dmy("01-07-2020")
+
+hutton_criteria <- funcion(station_data,date){
+  
+result <- station_data %>% mutate(Date=as_date(ob_time)) %>%  #get data
+  filter(Date %in% c(date-ddays(1),date-ddays(2)))       %>%  #filter only last two days
+  mutate(hum90pc=(rltv_hum>=90))                         %>%  # check if humidity of hour is 90% or more
+  group_by(Date)                                         %>% 
+  summarise(min_temp=min(air_temperature),                    #determine min temperature
+            hum90pc_count=sum(hum90pc))                  %>%  #determine number of hours with humidity above 90%
+  mutate(hutton_temp=(min_temp>=10),                          #temperature criterion
+         hutton_hum=(hum90pc_count>=6))                  %>%  #humidity criterion
+  select(-min_temp,-hum90pc_count)                       %>%
+  pivot_longer(-Date,names_to="measure",values_to="value") %>%
+  pull(value) %>% sum(.)==4                                   #determine if all criteria have been met
+
+return(result)
+
+}
+  
+
+```
+
