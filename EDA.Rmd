@@ -5,34 +5,340 @@ output: html_notebook
 
 #Exploring data and prototyping plotting options
 
-```{r libraries}
-library(tidyverse)
-library(lubridate)
-library(leaflet) #for mapping
-library(maps) # to create UK bounds
-library(hrbrthemes)
-library(gcookbook)
-library(paletteer)
-library(ggsci)
-library(showtext)
-library(plotly)
+```{r libraries, message=FALSE, warning=FALSE, include=FALSE}
+library("tidyverse")
+packages <- c("lubridate","leaflet","maps","hrbrthemes","gcookbook","paletteer","ggsci","showtext","ggiraph","data.table",
+              "kableExtra","knitr")
+
+loaded_packages <- paste0(search(),sep=" ",collapse = "")
+packages <- tibble(package = packages)
+packages <- packages %>% mutate(loaded=str_detect(loaded_packages, package, negate = FALSE)) %>% pull(package)
+
+if(length(packages)>0 ){
+  for(i in 1:length(packages)){
+    result <- require(packages[i],character.only = TRUE)
+    if(!result){
+      install.packages(packages[i])
+      library(packages[i],character.only = TRUE)
+    }
+  }
+}
+rm(packages,i,result)
+
+  font_add_google("Titillium Web","Titillium")
+  font_add("Arial Narrow","Arial Narrow")
+  showtext_auto()
+  
+
+#https://rstudio-pubs-static.s3.amazonaws.com/408658_512da947714740b99253228f084a08a9.html
+CapStr <- function(y) {
+  c <- strsplit(y, " ")[[1]]
+  paste(toupper(substring(c, 1,1)), substring(c, 2),
+      sep="", collapse=" ")
+}
+
+
 ```
+
+
+
+Hutton Criteria
+```{r}
+
+#' Obtain 
+#' https://en.wikipedia.org/wiki/Empirical_distribution_function
+#' @param  x numeric vector 
+#' @return vector with resulting values for each element in x
+hutton_criteria <- function(station_data){
+  
+result <- station_data                                   %>%  #get data
+  mutate(hum90pc=(rltv_hum>=90))                         %>%  # check if humidity of hour is 90% or more
+  group_by(Site,Site_Name,Date)                          %>% 
+  summarise(min_temp=min(air_temperature),                    #determine min temperature
+            hum90pc_count=sum(hum90pc),                       #determine 90% humidity condition
+            .groups="drop")                              %>%
+  ungroup()                                              %>%
+  group_by(Site,Site_Name)                               %>%
+  arrange(Date)                                          %>%  #arrange by date
+  mutate(hutton_temp=(min_temp>=10),                          #temperature criterion
+         hutton_hum=(hum90pc_count>=6))                  %>%  #humidity criterion
+  select(Date, hutton_temp,hutton_hum)                   %>%  
+  mutate(hutton_temp_yd = lag(hutton_temp,1),
+         hutton_hum_yd  = lag(hutton_hum,1))             %>%  #get values for previous day
+  mutate(hutton =  (hutton_temp & hutton_temp_yd)&
+                   (hutton_hum  & hutton_hum_yd))        %>%  #get result of hutton criteria
+  filter(!is.na(hutton_temp_yd) & !is.na(hutton_hum_yd)) %>%  #remove first day
+  ungroup()                                              %>%
+  select(Date, Site,Site_Name,hutton)                         #extract only dates and hutton result
+  
+
+return(result)
+
+}
+  
+# hutton_criteria(site_data$`643`)
+```
+
 
 ##Load Data
 
-```{r}
+```{r message=FALSE, warning=FALSE, include=FALSE}
+
+data_loader <- function(sites){
+  
+  site_data <- list()
+  
+  for(i in 1:nrow(sites)){
+      site_data[[i]] <- read_csv(paste("Data/Site_",sites[i,]$Site_ID,".csv",sep=""))
+      site_data[[i]] <- site_data[[i]] %>%  
+                        mutate(Date=as_date(ob_time)) %>%
+                        mutate(Site_Name=sites[i,]$Site_Name)
+  } 
+#  names(site_data) <- Site_ID               #not necessary if we are putting the data one tibble
+  site_data <- rbindlist(site_data)          # from https://stackoverflow.com/questions/26177565/converting-nested-list-to-dataframe
+  return(site_data)
+  
+}
+
+
+
 sites <- read_csv("Data/Sites.csv")
-site_data <- list()
-for(i in 1:length(sites$Site_ID)){
-  site_data[[i]] <- read_csv(paste("Data/Site_",sites[i,]$Site_ID,".csv",sep=""))
-} 
-  names(site_data) <- sites$Site_ID
+
+
+station_data<- data_loader(sites[1:5,])
+
+
+```
+
+
+## Summary of means
+
+
+
+– Raw hourly data (no aggregation);
+– Daily averages;
+– Monthly averages;
+– Daily maxima;
+– Daily minima;
+
+
+
+```{r}
+
+aggregate_data <- function(station_data){
+
+result <- list()  
+
+result$raw <- station_data %>% 
+              mutate(day_of_week=wday(Date),                                           #day of the week  
+                     hour_of_week=hour+(day_of_week-1)*24)                             #hour of the week
+
+
+result$daily <-  station_data %>%  group_by(Site,Site_Name,Date)   %>% 
+                 summarise(mean_air_temperature=mean(air_temperature,na.rm = TRUE),     #calculate daily means
+                    mean_rltv_hum = mean(rltv_hum,na.rm = TRUE),
+                    mean_wind_speed = mean(wind_speed,na.rm = TRUE),
+                    mean_visibility = mean(visibility,na.rm = TRUE),
+                    max_air_temperature=max(air_temperature,na.rm = TRUE),              #calculate daily maxs
+                    max_rltv_hum = max(rltv_hum,na.rm = TRUE),
+                    max_wind_speed = max(wind_speed,na.rm = TRUE),
+                    max_visibility = max(visibility,na.rm = TRUE),  
+                    min_air_temperature=min(air_temperature,na.rm = TRUE),             #calculate daily mins
+                    min_rltv_hum = min(rltv_hum,na.rm = TRUE),
+                    min_wind_speed = min(wind_speed,na.rm = TRUE),
+                    min_visibility = min(visibility,na.rm = TRUE),
+                    .groups = "drop") %>%
+                  mutate(day_of_week=wday(Date))                                       #day of the week
+
+
+result$monthly <- station_data %>% 
+                  mutate(Date=floor_date(Date, "month")) %>% group_by(Site,Site_Name,Date) %>%
+                  summarise(mean_air_temperature=mean(air_temperature,na.rm = TRUE),     #calculate daily means
+                    mean_rltv_hum = mean(rltv_hum,na.rm = TRUE),
+                    mean_wind_speed = mean(wind_speed,na.rm = TRUE),
+                    mean_visibility = mean(visibility,na.rm = TRUE),
+                    .groups = "drop")
+
+
+result$hutton <-   hutton_criteria(station_data)                
+
+return(result)
+
+}
+ 
+processed_data <- aggregate_data(station_data)
+```
+
+
+###plotting function
+
+```{r}
+
+#chart_value <- "monthly"          # raw, daily or monthly
+#stat_value  <- "mean"           # mean, max,min, none
+#meas_value  <-  "wind_speed"     #wind_speed,air_temperature,rltv_hum, visibility
+#time_value <-   "Date"  # Date,#day_of_week, #hour_of_week
+
+
+
+plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_value,interactive_flag=FALSE){
+ 
+  if(chart_value=="raw") stat_value<-"none"
+  if(chart_value=="monthly") time_value<-"Date"  
+  if(chart_value=="monthly") stat_value<-"mean"  
+
+  text_values <- tribble(~key,~text,
+                         "raw","",
+                         "daily","daily",
+                         "monthly","monthly",
+                         "Date","Date",
+                         "day_of_week","Day of the week",
+                         "hour_of_week","Hour of the week",
+                         "mean","average",
+                         "max","maxima",
+                         "min","minima",
+                         "wind_speed","Wind Speed",
+                         "air_temperature","Air Temperature",
+                         "rltv_hum","Relative Humidity",
+                         "visibility","Visibility",
+                         "Site_Name","Site Name"
+  )
+  
+  
+  
+  x.value<-time_value
+  y.value<- ifelse(stat_value=="none",meas_value,paste(stat_value,meas_value,sep="_"))
+  colour.value <-"Site_Name"
+  title.text <- paste(text_values %>% filter(key==meas_value) %>% pull(text),
+                      " (",
+                      text_values %>% filter(key==chart_value) %>% pull(text),
+                      " ",
+                      text_values %>% filter(key==stat_value) %>% pull(text),
+                      ")",sep="")
+  
+  x.text <- text_values %>% filter(key==x.value) %>% pull(text)
+  y.text <- paste(text_values %>% filter(key==chart_value) %>% pull(text) %>% CapStr(.),
+                  text_values %>% filter(key==stat_value) %>% pull(text),
+                  text_values %>% filter(key==meas_value) %>% pull(text) %>% tolower(.),
+                  sep=" ")
+  
+  
+  plotting_data <- processed_data[[which(names(processed_data)==chart_value)]] %>% 
+                    select(matches(paste(x.value,y.value,colour.value,sep="|"))) 
+  
+  
+if(interactive_flag==TRUE){
+  plotting_data<-plotting_data %>% mutate(tooltip_text=paste('<b>',text_values %>% filter(key==colour.value) %>% pull(text),': </b>',
+                                             (.[row_number(),which(colnames(.) == as.symbol(colour.value))]%>%pull()),
+                                             '<br>',
+                                  #          '<b>',x.text,': </b>',
+                                  #           (.[row_number(),which(colnames(.) == as.symbol(x.value))]%>%pull() %>% as.character()),
+                                  #           '<br>',
+                                  #           '<b>',y.text,': </b>',
+                                  #           (.[row_number(),which(colnames(.) == as.symbol(y.value))]%>%pull() %>% as.character())),
+                                             sep=""))
+}
+  
+  p <- plotting_data %>% ggplot(aes_string(x=x.value,y=y.value,colour=colour.value)) +
+    theme_minimal() +
+    theme(legend.position="right",
+          plot.title = element_text(size=16,face="bold",colour = "#272928",family="Titillium"),
+          plot.subtitle =element_text(size=10,colour = "azure4",family="Titillium"),
+          plot.caption =  element_text(size=10,colour = "azure4",family="Titillium"),
+          legend.text = element_text(size=10,colour = "#272928",family="Titillium")) +
+    labs(title = title.text,
+         x= x.text,
+         y= y.text)
+  
+  tooltip_value <- "tooltip_text"
+  if(time_value=="Date"){
+    if(interactive_flag==FALSE){
+        p<- p + geom_line()
+    }else{
+         p <-p + geom_line_interactive(aes_string(tooltip=tooltip_value,data_id=colour.value))
+    }
+  }else{
+    if(interactive_flag==FALSE){
+        p<- p + geom_point()
+    }else{
+        p<- p + geom_point_interactive(aes_string(tooltip = tooltip_value,data_id=colour.value))
+    }
+  }
+  
+  return(p)
+}
+
+
+
+
+p1<-plot_data(processed_data,"daily","max","wind_speed","Date",interactive_flag = TRUE)
+p2<- plot_data(processed_data,"raw","none","air_temperature","hour_of_week")
+p3<- plot_data(processed_data,"monthly","mean","rltv_hum","Date")
+
+
+girafe(ggobj = p3, width_svg = 8, height_svg = 4,
+  options = list(
+    opts_hover_inv(css = "opacity:0.1;"),
+    opts_hover(css = "stroke-width:2;")
+  ))
+
+
+```
+
+ last seven days in a table
+
+```{r}
+
+seven_day_data <- function(processed_data){
+  
+  table_data <- 
+    processed_data$daily %>% group_by(Site,Site_Name) %>%
+    filter(Date>(max(Date)-ddays(7))) %>%
+    ungroup() %>%
+    select(Site_Name,Date,colnames(processed_data$daily)[which(grepl("mean",colnames(processed_data$daily)))]) %>%
+    mutate(across(where(is.numeric), round, 2)) 
+  
+
+  result <- flextable(table_data)     %>%
+            autofit()           %>%
+            theme_booktabs()     %>%
+            merge_v(result, j = ~ Site_Name) %>%
+            set_header_labels( 
+                              Site_Name = "Site Name", 
+                              Date ="Date",
+                              mean_air_temperature="Avg. Air Temp",
+                              mean_rltv_hum="Avg. Rel Hum",
+                              mean_wind_speed="Avg. Wind Speed",
+                              mean_visibility="Avg Visibility"
+  )
+  
+  
+  
+  row_loc <- rle(cumsum( result$body$spans$columns[,1] ))$values
+  bigborder <- officer::fp_border(style = "solid", width=2)
+  
+  
+  result <- result %>% 
+            border(border.bottom = bigborder, i=row_loc, j = 2:6, part="body") 
+    result <- result %>% 
+              border(border.bottom = bigborder, 
+                      i = result$body$spans$columns[,1] > 1, j = 1, part="body") %>% 
+               border(border.bottom = bigborder, border.top = bigborder, part = "header")
+  
+  result
+  
+  return(result)
+  
+}
+seven_day_data(processed_data)
 ```
 
 
 ## Mapping station
 
 ```{r}
+
+location_map <- function(sites){
 
 bounds <- map("world", "UK", fill = TRUE, plot = FALSE) # create UK bounds  
 # https://stackoverflow.com/questions/49512240/how-to-assign-popup-on-map-polygon-that-corresponds-with-the-country-r-leaflet
@@ -49,7 +355,12 @@ map <- leaflet(options=leafletOptions(dragging=FALSE,minZoom = 5,maxZoom = 13)) 
                        popup = ~Site_Name)
 
 
-map
+return(map)
+
+}
+
+a<-location_map(sites)
+a
 ```
 
 
@@ -80,39 +391,37 @@ p<- plot_data %>%
         plot.subtitle =element_text(size=10,colour = "azure4",family="Titillium"),
         plot.caption =  element_text(size=10,colour = "azure4",family="Titillium"),
         legend.text = element_text(size=10,colour = "#272928",family="Titillium")) +
-  labs(title="This is a title") +
-  scale_color_paletteer_d("ggsci::category10_d3")
 
-ggplotly(p)
-
+p
 ```
 
 
-
-
-Hutton Criteria
 ```{r}
 
-date <- dmy("01-07-2020")
+hutton_plot <-function(processed_data,interactive_flag=FALSE){
 
-hutton_criteria <- funcion(station_data,date){
+  p<-processed_data$hutton %>% filter(!is.na(hutton_days)) %>%
+    ggplot(aes(x=Date,y=hutton_days,colour=Site_Name)) +
+    theme_minimal() +
+    theme(legend.position="right",
+          plot.title = element_text(size=16,face="bold",colour = "#272928",family="Titillium"),
+          plot.subtitle =element_text(size=10,colour = "azure4",family="Titillium"),
+          plot.caption =  element_text(size=10,colour = "azure4",family="Titillium"),
+          legend.text = element_text(size=10,colour = "#272928",family="Titillium")) +
+    labs(title = "Summary of Days meeting the Hutton Criteria",
+         x= "Date",
+         y= "Number of Days") 
   
-result <- station_data %>% mutate(Date=as_date(ob_time)) %>%  #get data
-  filter(Date %in% c(date-ddays(1),date-ddays(2)))       %>%  #filter only last two days
-  mutate(hum90pc=(rltv_hum>=90))                         %>%  # check if humidity of hour is 90% or more
-  group_by(Date)                                         %>% 
-  summarise(min_temp=min(air_temperature),                    #determine min temperature
-            hum90pc_count=sum(hum90pc))                  %>%  #determine number of hours with humidity above 90%
-  mutate(hutton_temp=(min_temp>=10),                          #temperature criterion
-         hutton_hum=(hum90pc_count>=6))                  %>%  #humidity criterion
-  select(-min_temp,-hum90pc_count)                       %>%
-  pivot_longer(-Date,names_to="measure",values_to="value") %>%
-  pull(value) %>% sum(.)==4                                   #determine if all criteria have been met
-
-return(result)
-
+  if(interactive_flag==FALSE){
+    p<- p + geom_point()
+  }else{
+    p <-p + geom_point_interactive(aes(tooltip=Site_Name,data_id=Site_Name))
+  }
+  
+  return(p)
 }
-  
+
+p5 <- hutton_plot(processed_data,interactive_flag=FALSE)
+p5
 
 ```
-

@@ -1,0 +1,94 @@
+---
+#title: "Weather Report"
+output: word_document
+always_allow_html: true
+params:
+  site_selection: !r c(643, 235)
+---
+
+```{r load_data, message=TRUE, warning=FALSE, include=FALSE, paged.print=FALSE}
+
+library("tidyverse")
+source("functions.R")
+
+knitr::opts_chunk$set(echo = FALSE,warning=FALSE,message=FALSE) #don't show code
+
+#load data and subset
+sites <- read_csv("Data/Sites.csv")
+
+
+sites <- sites %>% filter(Site_ID %in% params$site_selection)
+
+site_names <- paste(sites$Site_Name,collapse = ", ")
+
+station_data<- data_loader(sites)
+processed_data <- aggregate_data(station_data)
+
+```
+
+# Weather Report for `r site_names` 
+
+## Seven Day Summary
+
+```{r seven_day_table}
+
+seven_day_data(processed_data)
+```
+
+## Daily Charts
+
+### Air Temperature
+
+```{r}
+plot_data(processed_data,"daily","mean","air_temperature","Date")
+```
+
+```{r}
+plot_data(processed_data,"daily","max","air_temperature","Date")
+```
+
+```{r}
+plot_data(processed_data,"daily","min","air_temperature","Date")
+```
+
+### Relative Humidity
+
+```{r}
+plot_data(processed_data,"daily","mean","rltv_hum","Date")
+```
+
+```{r}
+plot_data(processed_data,"daily","max","rltv_hum","Date")
+```
+
+```{r}
+plot_data(processed_data,"daily","min","rltv_hum","Date")
+```
+
+### Wind Speed
+
+```{r}
+plot_data(processed_data,"daily","mean","wind_speed","Date")
+```
+
+```{r}
+plot_data(processed_data,"daily","max","wind_speed","Date")
+```
+
+```{r}
+plot_data(processed_data,"daily","min","wind_speed","Date")
+```
+
+### Visibility
+
+```{r}
+plot_data(processed_data,"daily","mean","visibility","Date")
+```
+
+```{r}
+plot_data(processed_data,"daily","max","visibility","Date")
+```
+
+```{r}
+plot_data(processed_data,"daily","min","visibility","Date")
+```
