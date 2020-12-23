@@ -1,5 +1,4 @@
 
-###Adjust mapbox
 
 ##error when computing min visibility
 Warning in min(visibility, na.rm = TRUE) :
@@ -9,9 +8,17 @@ Warning in min(visibility, na.rm = TRUE) :
 
 ### Add Message when choosing wrong combinations
 
-### Rename Site_Name to Location in legends
-### Improve resolution and paging (patchwork???) in word charts
-
 ### Improve Design
+#### bootstrap
+#### make map aligned to bottom
+### make table to use as much space as plot
+### make text size the same between plot and table title = and align thme if possible
+
 
 ### Deal with Sumburgh
+
+### FIX processed_data <- aggregate_data(station_data)
+Adding missing grouping variables: `Site`, `Site_Name
+
+
+###Deal with missing values !!!!!

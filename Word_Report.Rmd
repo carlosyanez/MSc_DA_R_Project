@@ -11,7 +11,9 @@ params:
 library("tidyverse")
 source("functions.R")
 
-knitr::opts_chunk$set(echo = FALSE,warning=FALSE,message=FALSE) #don't show code
+knitr::opts_chunk$set(echo = FALSE,warning=FALSE,message=FALSE,
+                      fig.height=3,
+                      dpi = 600, dev.args = list(bg = 'transparent')) #don't show code
 
 #load data and subsetdata Site_Nameand subset
 sites <- read_csv("Data/Sites.csv")
@@ -41,6 +43,7 @@ seven_day_datatable(processed_data)
 
 ```{r}
 plot_data(processed_data,"daily","mean","air_temperature","Date")
+
 ```
 
 ```{r}

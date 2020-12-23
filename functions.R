@@ -6,7 +6,7 @@
 ### LOAD PACKAGES 
 
 packages <- c("lubridate","leaflet","maps","paletteer","ggsci","showtext","ggiraph","data.table",
-              "flextable","officer","rmarkdown")
+              "flextable","officer","rmarkdown","patchwork")
 
 loaded_packages <- paste0(search(),sep=" ",collapse = "")
 packages <- tibble(package = packages)
@@ -202,7 +202,7 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
                          "air_temperature","Air Temperature",
                          "rltv_hum","Relative Humidity",
                          "visibility","Visibility",
-                         "Site_Name","Site Name"
+                         "Site_Name","Location"
   )
   
   
@@ -210,6 +210,7 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
   x.value<-time_value
   y.value<- ifelse(stat_value=="none",meas_value,paste(stat_value,meas_value,sep="_"))
   colour.value <-"Site_Name"
+  colour.text <- "Location"
   title.text <- paste(text_values %>% filter(key==meas_value) %>% pull(text),
                       " (",
                       text_values %>% filter(key==chart_value) %>% pull(text),
@@ -237,7 +238,8 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
           legend.text = element_text(size=10,colour = "#272928",family="Titillium")) +
     labs(title = title.text,
          x= x.text,
-         y= y.text)
+         y= y.text,
+         colour=colour.text)
   
   tooltip_value <- "Site_Name"
   if(time_value=="Date"){
@@ -332,7 +334,7 @@ location_map <- function(sites){
   bounds <- map("world", "UK", fill = TRUE, plot = FALSE) # create UK bounds  
   # https://stackoverflow.com/questions/49512240/how-to-assign-popup-on-map-polygon-that-corresponds-with-the-country-r-leaflet
   
-  map <- leaflet(options=leafletOptions(dragging=FALSE,minZoom = 5,maxZoom = 13)) %>%
+  map <- leaflet(options=leafletOptions(dragging=FALSE,zoomControl = FALSE,minZoom = 5,maxZoom = 5)) %>%
     addProviderTiles("CartoDB") %>%
     addPolygons(data = bounds, group = "Countries", 
                 color = "red", 
@@ -364,7 +366,8 @@ hutton_plot <-function(processed_data,interactive_flag=FALSE){
           legend.text = element_text(size=10,colour = "#272928",family="Titillium")) +
     labs(title = "Summary of Days meeting the Hutton Criteria",
          x= "Date",
-         y= "Number of Days") 
+         y= "Number of Days",
+         colour="Location") 
   
   if(interactive_flag==FALSE){
     p<- p + geom_point()
