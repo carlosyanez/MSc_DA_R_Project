@@ -3,7 +3,7 @@
 output: word_document
 always_allow_html: true
 params:
-  site_selection: !r c(643, 235)
+  site_selection: !r c("Abbotsinch", "Heathrow")
 ---
 
 ```{r load_data, message=TRUE, warning=FALSE, include=FALSE, paged.print=FALSE}
@@ -13,11 +13,11 @@ source("functions.R")
 
 knitr::opts_chunk$set(echo = FALSE,warning=FALSE,message=FALSE) #don't show code
 
-#load data and subset
+#load data and subsetdata Site_Nameand subset
 sites <- read_csv("Data/Sites.csv")
 
 
-sites <- sites %>% filter(Site_ID %in% params$site_selection)
+sites <- sites %>% filter(Site_Name %in% params$site_selection)
 
 site_names <- paste(sites$Site_Name,collapse = ", ")
 
@@ -32,7 +32,7 @@ processed_data <- aggregate_data(station_data)
 
 ```{r seven_day_table}
 
-seven_day_data(processed_data)
+seven_day_datatable(processed_data)
 ```
 
 ## Daily Charts

@@ -6,7 +6,7 @@
 ### LOAD PACKAGES 
 
 packages <- c("lubridate","leaflet","maps","paletteer","ggsci","showtext","ggiraph","data.table",
-              "flextable","knitr","officer")
+              "flextable","officer","rmarkdown")
 
 loaded_packages <- paste0(search(),sep=" ",collapse = "")
 packages <- tibble(package = packages)
@@ -23,12 +23,27 @@ if(length(packages)>0 ){
 }
 rm(packages,i,result)
 
+
 ############################### 
 ### LOAD FONTS USED IN PLOTS 
 
 font_add_google("Titillium Web","Titillium")
 font_add("Arial Narrow","Arial Narrow")
 showtext_auto()
+
+
+#############################
+### Keys
+
+meas_key <- tibble(key=c("Air Temperature","Relative Humidity","Wind Speed","Visibility"),
+                   value=c("air_temperature","rltv_hum","wind_speed","visibility"))
+stat_key <- tibble(key=c("Averages","Maxima","Minima"),
+                   value=c("mean","max","min"))
+period_key <- tibble(key=c("Daily","Monthly","Raw Data"),
+                     value=c("daily","monthly","raw"))
+tl_key <-tibble(key=c("Calendar Date","Day of the Week","Day of the Month","Hour of the Day"),
+                      value=c("Date","day_of_week","day_of_month","hour"))
+
 
 
 ############################### 
@@ -116,8 +131,8 @@ aggregate_data <- function(station_data){
   
   result$raw <- station_data %>% 
     mutate(day_of_week=wday(Date),                                           #day of the week  
-           hour_of_week=hour+(day_of_week-1)*24)                             #hour of the week
-  
+           hour_of_week=hour+(day_of_week-1)*24,                             #hour of the week
+           day_of_month=day(Date))                                           # day of the month
   
   result$daily <-  station_data %>%  group_by(Site,Site_Name,Date)   %>% 
     summarise(mean_air_temperature=mean(air_temperature,na.rm = TRUE),              #calculate daily means
@@ -133,8 +148,8 @@ aggregate_data <- function(station_data){
               min_wind_speed = min(wind_speed,na.rm = TRUE),
               min_visibility = min(visibility,na.rm = TRUE),
               .groups = "drop") %>%
-    mutate(day_of_week=wday(Date))                                                  #day of the week
-  
+    mutate(day_of_week=wday(Date),                                                  #day of the week
+           day_of_month=day(Date))                                                  #day of the month
   
   result$monthly <- station_data %>% 
     mutate(Date=floor_date(Date, "month")) %>% group_by(Site,Site_Name,Date) %>%
@@ -167,7 +182,7 @@ aggregate_data <- function(station_data){
 #' @param  interactive_flag whether output is ggplot or ggiraph object (default FALSE)
 #' @return plot
 plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_value,interactive_flag=FALSE){
-  
+
   if(chart_value=="raw") stat_value<-"none"
   if(chart_value=="monthly") time_value<-"Date"  
   if(chart_value=="monthly") stat_value<-"mean"  
@@ -177,8 +192,9 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
                          "daily","daily",
                          "monthly","monthly",
                          "Date","Date",
+                         "hour_of_day","Our of the day",
                          "day_of_week","Day of the week",
-                         "hour_of_week","Hour of the week",
+                         "hour","Hour of the week",
                          "mean","average",
                          "max","max.",
                          "min","min.",
@@ -210,20 +226,8 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
   
   plotting_data <- processed_data[[which(names(processed_data)==chart_value)]] %>% 
     select(matches(paste(x.value,y.value,colour.value,sep="|"))) 
-  
-  
-  if(interactive_flag==TRUE){
-    plotting_data<-plotting_data %>% mutate(tooltip_text=paste('<b>',text_values %>% filter(key==colour.value) %>% pull(text),': </b>',
-                                                               (.[row_number(),which(colnames(.) == as.symbol(colour.value))]%>%pull()),
-                                                               '<br>',
-                                                               #          '<b>',x.text,': </b>',
-                                                               #           (.[row_number(),which(colnames(.) == as.symbol(x.value))]%>%pull() %>% as.character()),
-                                                               #           '<br>',
-                                                               #           '<b>',y.text,': </b>',
-                                                               #           (.[row_number(),which(colnames(.) == as.symbol(y.value))]%>%pull() %>% as.character())),
-                                                               sep=""))
-  }
-  
+
+
   p <- plotting_data %>% ggplot(aes_string(x=x.value,y=y.value,colour=colour.value)) +
     theme_minimal() +
     theme(legend.position="right",
@@ -235,7 +239,7 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
          x= x.text,
          y= y.text)
   
-  tooltip_value <- "tooltip_text"
+  tooltip_value <- "Site_Name"
   if(time_value=="Date"){
     if(interactive_flag==FALSE){
       p<- p + geom_line()
@@ -254,20 +258,36 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
 }
 
 ############################### 
-### seven day data table
+### seven day data set
 
-#' Create table with stats from last seven days
+#' Create tibble with stats from last seven days
 #' @param  processed_data output of aggregate_data
-#' #' @return table
-seven_day_data <- function(processed_data){
+#' @param rounding_value rounding precision for stats
+#' @return dataset
+seven_day_dataset <-function(processed_data,rounding_value=2){
   
   table_data <- 
     processed_data$daily %>% group_by(Site,Site_Name) %>%
     filter(Date>(max(Date)-ddays(7))) %>%
     ungroup() %>%
-    select(Site_Name,Date,colnames(processed_data$daily)[which(grepl("mean",colnames(processed_data$daily)))]) %>%
-    mutate(across(where(is.numeric), round, 2)) 
+    select(Site_Name,Date,
+           colnames(processed_data$daily)[which(grepl("mean",colnames(processed_data$daily)))]) %>%
+    mutate(across(where(is.numeric), round, rounding_value)) 
   
+  return(table_data)
+  
+}
+
+
+############################### 
+### seven day data table
+
+#' Create table with stats from last seven days
+#' @param  processed_data output of aggregate_data
+#' @return table
+seven_day_datatable <- function(processed_data){
+  
+  table_data <- seven_day_dataset(processed_data)
   
   result <- flextable(table_data)     %>%
     autofit()           %>%
