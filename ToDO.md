@@ -9,8 +9,7 @@ Warning in min(visibility, na.rm = TRUE) :
 ### Add Message when choosing wrong combinations
 
 ### Improve Design
-#### bootstrap
-#### make map aligned to bottom
+#### make map aligned to bottom --- OK???
 ### make table to use as much space as plot
 ### make text size the same between plot and table title = and align thme if possible
 

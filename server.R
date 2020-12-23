@@ -8,7 +8,7 @@
 #
 
 library(shiny)
-library("tidyverse")
+library(tidyverse)
 source("functions.R")
 
 
@@ -64,7 +64,9 @@ shinyServer(function(input, output) {
 #### SUMMARY TABLE
     output$SummaryTable <- renderUI({
 
-        seven_day_datatable(values$processed_data) %>% htmltools_value()
+        seven_day_datatable(values$processed_data) %>%
+            width(width = 1) %>%
+            htmltools_value()
 
     })
 
@@ -90,6 +92,7 @@ shinyServer(function(input, output) {
 ####LOCATION MAP (WITH LEAFLET)
     output$LocationMap <- renderLeaflet({
         location_map(values$sites)
+        
         
     })    
 ####DOWNLOAD WORD REPORT

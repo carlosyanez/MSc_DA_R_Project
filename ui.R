@@ -39,7 +39,8 @@ sites <- sites %>% arrange(Site_Name)
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
-
+    theme = shinytheme("cerulean"),
+    tags$head(tags$style(HTML('* {font-family: "Titillium"};'))),
     # Application title
     titlePanel("Weather Report for Selected Stations in the UK"),
 
@@ -56,7 +57,7 @@ shinyUI(fluidPage(
              pickerInput("statInput","Statistic",choices=stat_key$key,options = list(style = "btn-primary"),selected = "Averages"),
              pickerInput("periodInput","Period",choices=period_key$key,options = list(style = "btn-primary"),selected = "Monthly"),
              pickerInput("tlInput","Time Axis",choices=tl_key$key,options = list(style = "btn-primary"),selected = "Calendar Date"),
-             leafletOutput("LocationMap")
+             leafletOutput("LocationMap", width = "100%", height = 500)
             
         ),
 
@@ -66,18 +67,21 @@ shinyUI(fluidPage(
             tabPanel("Summary", 
                      br(),
                      fluidRow(
-                             column(4,""),
-                             column(4,downloadButton('downloadReportButton', 'Download Word Report')),
-                             column(4,downloadButton('downloadCSVButton', 'Download CSV File'))
+                             column(6,h3(" ")),
+                             column(3,downloadButton('downloadReportButton', 'Download Word Report')),
+                             column(3,downloadButton('downloadCSVButton', 'Download CSV File'))
                                           
                      ),
                      br(),
-                     girafeOutput("SummaryPlot"),
+                     h3("Summary Chart"),
+                     girafeOutput("SummaryPlot",width="100%"),
                      br(),
-                     h2("Average Measurements from the last seven days"),
+                     h3("Average Measurements from the last seven days"),
                      br(),
-                    uiOutput("SummaryTable")),
+                    uiOutput("SummaryTable",width="100%")),
             tabPanel("Hutton Criteria",
+                     br(),
+                     h3("Hutton Criteria"),
                      br(),girafeOutput("HuttonPlot"))
             
         ))

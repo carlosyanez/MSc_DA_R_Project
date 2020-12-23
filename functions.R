@@ -6,7 +6,7 @@
 ### LOAD PACKAGES 
 
 packages <- c("lubridate","leaflet","maps","paletteer","ggsci","showtext","ggiraph","data.table",
-              "flextable","officer","rmarkdown","patchwork")
+              "flextable","officer","rmarkdown","patchwork","shinythemes")
 
 loaded_packages <- paste0(search(),sep=" ",collapse = "")
 packages <- tibble(package = packages)
@@ -301,8 +301,11 @@ seven_day_datatable <- function(processed_data){
       mean_air_temperature="Avg. Air Temp",
       mean_rltv_hum="Avg. Rel Hum",
       mean_wind_speed="Avg. Wind Speed",
-      mean_visibility="Avg Visibility"
-    )
+      mean_visibility="Avg Visibility") %>%
+    font(fontname = "Titillium",part="all")   %>%
+    fontsize(size = 14, part = "all")
+  
+  
   
   #from https://stackoverflow.com/questions/44700492/r-flextable-how-to-add-a-table-wide-horizontal-border-under-a-merged-cell
   
@@ -329,12 +332,12 @@ seven_day_datatable <- function(processed_data){
 #' create leaflet map with all locations
 #' @param  sites sites data frame loaded from sites.csv (or subset of)
 #' #' @return leaflet map
-location_map <- function(sites){
+location_map <- function(sites,height_value=300){
   
   bounds <- map("world", "UK", fill = TRUE, plot = FALSE) # create UK bounds  
   # https://stackoverflow.com/questions/49512240/how-to-assign-popup-on-map-polygon-that-corresponds-with-the-country-r-leaflet
   
-  map <- leaflet(options=leafletOptions(dragging=FALSE,zoomControl = FALSE,minZoom = 5,maxZoom = 5)) %>%
+  map <- leaflet(height=height_value,options=leafletOptions(dragging=FALSE,zoomControl = FALSE,minZoom = 5,maxZoom = 5)) %>%
     addProviderTiles("CartoDB") %>%
     addPolygons(data = bounds, group = "Countries", 
                 color = "red", 
