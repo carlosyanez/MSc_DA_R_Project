@@ -54,9 +54,9 @@ shinyUI(fluidPage(
                                         ),
                          selected = sites[1,]$Site_Name,multiple = T),
              pickerInput("measInput","Measurement",choices=meas_key$key,options = list(style = "btn-primary"),selected = "Air Temperature"),
-             pickerInput("statInput","Statistic",choices=stat_key$key,options = list(style = "btn-primary"),selected = "Averages"),
              pickerInput("periodInput","Period",choices=period_key$key,options = list(style = "btn-primary"),selected = "Monthly"),
-             pickerInput("tlInput","Time Axis",choices=tl_key$key,options = list(style = "btn-primary"),selected = "Calendar Date"),
+             pickerInput("statInput","Statistic",choices=c("Averages"),options = list(style = "btn-primary"),selected = "Averages"),
+             pickerInput("tlInput","Time Axis",choices=c("Calendar Date"),options = list(style = "btn-primary"),selected = "Calendar Date"),
              leafletOutput("LocationMap", width = "100%", height = 500)
             
         ),
@@ -78,7 +78,7 @@ shinyUI(fluidPage(
                      br(),
                      h3("Average Measurements from the last seven days"),
                      br(),
-                    uiOutput("SummaryTable",width="100%")),
+                     DTOutput("SummaryTable",width="100%")),
             tabPanel("Hutton Criteria",
                      br(),
                      h3("Hutton Criteria"),

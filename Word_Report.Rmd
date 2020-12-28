@@ -28,7 +28,7 @@ processed_data <- aggregate_data(station_data)
 
 ```
 
-# Weather Report for `r site_names` 
+# Weather Report for `r site_names`
 
 ## Seven Day Summary
 

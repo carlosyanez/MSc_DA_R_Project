@@ -15,7 +15,7 @@ source("functions.R")
 sites <- read_csv("Data/Sites.csv")  #### loaded in UI
 
 
-shinyServer(function(input, output) {
+shinyServer(function(input, output,session) {
     
     site_names <- paste(sites$Site_Name,collapse = ", ")
     
@@ -60,13 +60,48 @@ shinyServer(function(input, output) {
         
     })
     
+    ###Change filter options based on period 
+    
+    observeEvent(input$periodInput,{
+        
+        if(input$periodInput=="Daily"){
+            choice_values_stat <- stat_key %>% filter(daily_filter) %>% select(key) %>% pull(.)
+            choice_values_tl <-   tl_key %>% filter(daily_filter) %>% select(key) %>% pull(.)
+            
+        }
+        
+        if(input$periodInput=="Monthly"){
+            choice_values_stat <- stat_key %>% filter(monthly_filter) %>% select(key) %>% pull(.)
+            choice_values_tl <-   tl_key %>% filter(monthly_filter) %>% select(key) %>% pull(.)
+            
+        }
+        
+        if(input$periodInput=="Raw Data"){
+            choice_values_stat <- stat_key %>% filter(raw_filter) %>% select(key) %>% pull(.)
+            choice_values_tl <-   tl_key %>% filter(raw_filter) %>% select(key) %>% pull(.)
+            
+        }
+        
+        updatePickerInput(
+            session,
+            "statInput",
+            choices = choice_values_stat,
+        )
+        
+        updatePickerInput(
+            session,
+            "tlInput",
+            choices = choice_values_tl,
+        )
+        
+    })
+    
+    
 
 #### SUMMARY TABLE
-    output$SummaryTable <- renderUI({
+    output$SummaryTable <- renderDT({
 
-        seven_day_datatable(values$processed_data) %>%
-            width(width = 1) %>%
-            htmltools_value()
+        seven_day_DT(values$processed_data) 
 
     })
 

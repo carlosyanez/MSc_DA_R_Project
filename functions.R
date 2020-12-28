@@ -6,7 +6,7 @@
 ### LOAD PACKAGES 
 
 packages <- c("lubridate","leaflet","maps","paletteer","ggsci","showtext","ggiraph","data.table",
-              "flextable","officer","rmarkdown","patchwork","shinythemes")
+              "flextable","officer","rmarkdown","patchwork","shinythemes","DT")
 
 loaded_packages <- paste0(search(),sep=" ",collapse = "")
 packages <- tibble(package = packages)
@@ -28,8 +28,9 @@ rm(packages,i,result)
 ### LOAD FONTS USED IN PLOTS 
 
 font_add_google("Titillium Web","Titillium")
-font_add("Arial Narrow","Arial Narrow")
+#font_add("Arial Narrow","Arial Narrow")
 showtext_auto()
+colour_palette <- "ggsci::nrc_npg"
 
 
 #############################
@@ -37,12 +38,18 @@ showtext_auto()
 
 meas_key <- tibble(key=c("Air Temperature","Relative Humidity","Wind Speed","Visibility"),
                    value=c("air_temperature","rltv_hum","wind_speed","visibility"))
-stat_key <- tibble(key=c("Averages","Maxima","Minima"),
-                   value=c("mean","max","min"))
 period_key <- tibble(key=c("Daily","Monthly","Raw Data"),
                      value=c("daily","monthly","raw"))
-tl_key <-tibble(key=c("Calendar Date","Day of the Week","Day of the Month","Hour of the Day"),
-                      value=c("Date","day_of_week","day_of_month","hour"))
+stat_key <- tibble(key=c("Averages","Maxima","Minima","Raw"),
+                   value=c("mean","max","min","raw"),
+                   daily_filter=c(TRUE,TRUE,TRUE,FALSE),
+                   monthly_filter=c(TRUE,FALSE,FALSE,FALSE),
+                   raw_filter=c(FALSE,FALSE,FALSE,TRUE))
+tl_key <-tibble(key=c("Calendar Date","Day of the Week","Day of the Month","Hour of the Day","Hour of the week"),
+                value=c("Date","day_of_week","day_of_month","hour","hour_of_week"),
+                daily_filter=c(TRUE,TRUE,TRUE,FALSE,FALSE),
+                monthly_filter=c(TRUE,FALSE,FALSE,FALSE,FALSE),
+                raw_filter=c(FALSE,FALSE,FALSE,TRUE,TRUE))
 
 
 
@@ -110,6 +117,7 @@ data_loader <- function(sites){
     site_data[[i]] <- read_csv(paste("Data/Site_",sites[i,]$Site_ID,".csv",sep=""))
     site_data[[i]] <- site_data[[i]] %>%  
       mutate(Date=as_date(ob_time)) %>%
+      mutate(ob_time=as_datetime(ob_time)) %>%  #Addressing problem in case time data is loaded as character and therefore incompatible with rest
       mutate(Site_Name=sites[i,]$Site_Name)
   } 
   site_data <- rbindlist(site_data)          # collapse list into one tibble - 
@@ -226,7 +234,7 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
   
   
   plotting_data <- processed_data[[which(names(processed_data)==chart_value)]] %>% 
-    select(matches(paste(x.value,y.value,colour.value,sep="|"))) 
+    select(matches(paste("Date",x.value,y.value,colour.value,sep="|"))) 
 
 
   p <- plotting_data %>% ggplot(aes_string(x=x.value,y=y.value,colour=colour.value)) +
@@ -248,14 +256,17 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
     }else{
       p <-p + geom_line_interactive(aes_string(tooltip=tooltip_value,data_id=colour.value))
     }
+    p <- p + scale_colour_paletteer_d(colour_palette) 
+    
   }else{
     if(interactive_flag==FALSE){
       p<- p + geom_point()
     }else{
       p<- p + geom_point_interactive(aes_string(tooltip = tooltip_value,data_id=colour.value))
     }
+    p <- p +scale_fill_paletteer_d(colour_palette) 
   }
-  
+
   return(p)
 }
 
@@ -326,6 +337,38 @@ seven_day_datatable <- function(processed_data){
   
 }
 
+
+
+############################### 
+### seven day data table - DT
+
+#' Create table with stats from last seven days
+#' @param  processed_data output of aggregate_data
+#' @return table
+seven_day_DT <- function(processed_data){
+  
+ 
+  table_data <- seven_day_dataset(processed_data)
+  
+  result <- table_data %>% arrange(Site_Name,Date) %>%
+    datatable( colnames = c('Site Name', 'Date', 'Avg. Air Temperatue', 'Avg. Relative Humidity', 'Avg. Wind Speed','Avg Visibility'),
+               extensions = c('Buttons','Responsive','KeyTable'),
+               options = list(
+                 initComplete = JS(
+                   "function(settings, json) {",
+                   "$('body').css({'font-family': 'Titillium'});",
+                   "}"
+                 ),
+                 pageLength = 7,
+                 lengthMenu = c(3, 15, 15, 10,10,10,10),
+                 dom = 'Bfrtip',
+                 buttons = c('copy', 'csv'),
+                 keys=TRUE) )
+  
+  return(result)
+  
+}
+
 ############################### 
 ### Map with all locations
 
@@ -337,18 +380,22 @@ location_map <- function(sites,height_value=300){
   bounds <- map("world", "UK", fill = TRUE, plot = FALSE) # create UK bounds  
   # https://stackoverflow.com/questions/49512240/how-to-assign-popup-on-map-polygon-that-corresponds-with-the-country-r-leaflet
   
+  cp <- paletteer_d(colour_palette)
+  sites_map <- sites %>% arrange(Site_Name)
+  sites_map$colour <- cp[1:nrow(sites_map)]
   map <- leaflet(height=height_value,options=leafletOptions(dragging=FALSE,zoomControl = FALSE,minZoom = 5,maxZoom = 5)) %>%
     addProviderTiles("CartoDB") %>%
     addPolygons(data = bounds, group = "Countries", 
                 color = "red", 
                 weight = 2,
                 fillOpacity = 0.0) %>%
-    addCircleMarkers(~Longitude, ~Latitude,data=sites,
-                     color="navy",
+    addCircleMarkers(~Longitude, ~Latitude,data=sites_map,
+                     color=~colour,
                      radius=5,
                      popup = ~Site_Name)
   
   
+  sites
   return(map)
   
 }
@@ -360,6 +407,7 @@ location_map <- function(sites,height_value=300){
 hutton_plot <-function(processed_data,interactive_flag=FALSE){
   
   p<-processed_data$hutton %>% filter(!is.na(hutton_days)) %>%
+    mutate(tooltip_text =paste0("Site: ",Site_Name,"\n Date: ",Date,"\n Hutton Days: ",hutton_days)) %>%
     ggplot(aes(x=Date,y=hutton_days,colour=Site_Name)) +
     theme_minimal() +
     theme(legend.position="right",
@@ -367,6 +415,7 @@ hutton_plot <-function(processed_data,interactive_flag=FALSE){
           plot.subtitle =element_text(size=10,colour = "azure4",family="Titillium"),
           plot.caption =  element_text(size=10,colour = "azure4",family="Titillium"),
           legend.text = element_text(size=10,colour = "#272928",family="Titillium")) +
+          scale_fill_paletteer_d(colour_palette)
     labs(title = "Summary of Days meeting the Hutton Criteria",
          x= "Date",
          y= "Number of Days",
@@ -375,7 +424,7 @@ hutton_plot <-function(processed_data,interactive_flag=FALSE){
   if(interactive_flag==FALSE){
     p<- p + geom_point()
   }else{
-    p <-p + geom_point_interactive(aes(tooltip=Site_Name,data_id=Site_Name))
+    p <-p + geom_point_interactive(aes(tooltip=tooltip_text,data_id=Site_Name))
   }
   
   return(p)
