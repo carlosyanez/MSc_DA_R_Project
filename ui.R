@@ -15,8 +15,8 @@ source("functions.R")
 ############################### 
 ### LOAD PACKAGES 
 
-packages <- c("shinyWidgets")
-
+packages <- c("shinyWidgets","shinythemes")
+#shinythemes
 loaded_packages <- paste0(search(),sep=" ",collapse = "")
 packages <- tibble(package = packages)
 packages <- packages %>% mutate(loaded=str_detect(loaded_packages, package, negate = FALSE)) %>% pull(package)
@@ -39,8 +39,14 @@ sites <- sites %>% arrange(Site_Name)
 
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
-    theme = shinytheme("cerulean"),
-    tags$head(tags$style(HTML('* {font-family: "Titillium"};'))),
+   theme = shinytheme("flatly"),
+
+    tags$head(
+        tags$style(HTML("
+                    @import url('//fonts.googleapis.com/css2?family=Roboto&display=swap');
+                    "))
+    ),
+
     # Application title
     titlePanel("Weather Report for Selected Stations in the UK"),
 
@@ -50,39 +56,35 @@ shinyUI(fluidPage(
              pickerInput("locInput","Location", choices=sites$Site_Name,
                          options = pickerOptions(actionsBox = TRUE ,
                                          maxOptions=5,
-                                        maxOptionsText="Only 5 locations allowed"
+                                        maxOptionsText="Only 5 locations allowed",
+                                        style = "btn-primary"
                                         ),
                          selected = sites[1,]$Site_Name,multiple = T),
-             pickerInput("measInput","Measurement",choices=meas_key$key,options = list(style = "btn-primary"),selected = "Air Temperature"),
-             pickerInput("periodInput","Period",choices=period_key$key,options = list(style = "btn-primary"),selected = "Monthly"),
-             pickerInput("statInput","Statistic",choices=c("Averages"),options = list(style = "btn-primary"),selected = "Averages"),
-             pickerInput("tlInput","Time Axis",choices=c("Calendar Date"),options = list(style = "btn-primary"),selected = "Calendar Date"),
+             pickerInput("measInput","Measurement",choices=meas_key$key,selected = "Air Temperature"),
+             pickerInput("periodInput","Period",choices=period_key$key,selected = "Monthly"),
+             pickerInput("statInput","Statistic",choices=c("Averages"),selected = "Averages"),
+             pickerInput("tlInput","Time Axis",choices=c("Calendar Date"),selected = "Calendar Date"),
              leafletOutput("LocationMap", width = "100%", height = 500)
             
         ),
 
         # Show a plot of the generated distribution
         mainPanel(
-            tabsetPanel(type = "tabs",
+            fluidRow(
+                column(10,h3(" ")),
+                column(2,downloadBttn('downloadReportButton', label='Download Word Report',style='material-flat',color='primary',size='xs'))
+                #                            column(3,downloadButton('downloadCSVButton', 'Download CSV File'))            ### DT already has a inbuilt download button
+                
+            ),
+            tabsetPanel(type = "pills",
             tabPanel("Summary", 
-                     br(),
-                     fluidRow(
-                             column(6,h3(" ")),
-                             column(3,downloadButton('downloadReportButton', 'Download Word Report')),
-                             column(3,downloadButton('downloadCSVButton', 'Download CSV File'))
-                                          
-                     ),
-                     br(),
                      h3("Summary Chart"),
-                     girafeOutput("SummaryPlot",width="100%"),
-                     br(),
+                     girafeOutput("SummaryPlot",width="100%",height = "50%"),
                      h3("Average Measurements from the last seven days"),
-                     br(),
                      DTOutput("SummaryTable",width="100%")),
             tabPanel("Hutton Criteria",
-                     br(),
-                     h3("Hutton Criteria"),
-                     br(),girafeOutput("HuttonPlot"))
+                     h3("Hutton Criteria")
+                     ,girafeOutput("HuttonPlot"))
             
         ))
     )

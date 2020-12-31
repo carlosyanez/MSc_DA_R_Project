@@ -27,7 +27,7 @@ rm(packages,i,result)
 ############################### 
 ### LOAD FONTS USED IN PLOTS 
 
-font_add_google("Titillium Web","Titillium")
+font_add_google("Roboto","Titillium")
 #font_add("Arial Narrow","Arial Narrow")
 showtext_auto()
 colour_palette <- "ggsci::nrc_npg"
@@ -107,22 +107,46 @@ hutton_criteria <- function(station_data){
 
 #' Calculate the Hutton Criteria
 #' @param  sites tibble with (subset) of stations of add (loaded from sites.csv)
+#' @param  data  previously loaded dataset
 #' @return tibble "raw" station data 
-data_loader <- function(sites){
+data_loader <- function(sites,data=1){
   
   site_data <- list()
   
-  #get each file into one list item each
-  for(i in 1:nrow(sites)){
-    site_data[[i]] <- read_csv(paste("Data/Site_",sites[i,]$Site_ID,".csv",sep=""))
-    site_data[[i]] <- site_data[[i]] %>%  
-      mutate(Date=as_date(ob_time)) %>%
-      mutate(ob_time=as_datetime(ob_time)) %>%  #Addressing problem in case time data is loaded as character and therefore incompatible with rest
-      mutate(Site_Name=sites[i,]$Site_Name)
-  } 
-  site_data <- rbindlist(site_data)          # collapse list into one tibble - 
-                                             #from https://stackoverflow.com/questions/26177565/converting-nested-list-to-dataframe
+  #if theere is a previous dataframe, determine if and how many stations are missing
+  if(typeof(data)=="list"){
+    sites_orig <- sites
+    sites_covered <- data %>% select(Site_Name) %>% unique() %>% pull()
+    sites <- sites %>% filter(!(Site_Name %in% sites_covered))
+  }
   
+  #only load files if there is any missing data, if not, just filter
+  if(nrow(sites)>0){
+    #get each file into one list item each
+    for(i in 1:nrow(sites)){
+      site_data[[i]] <- read_csv(paste("Data/Site_",sites[i,]$Site_ID,".csv",sep=""),
+                                 col_types="cdddddddd")
+      
+      
+      #there are at least two different date formats -  function to uniform
+      site_data[[i]]$ob_time <-parse_date_time(site_data[[i]]$ob_time, orders=c("YmdHMS", "dmYHMS","dmYHM"),tz="Europe/London")
+      
+      site_data[[i]] <- site_data[[i]] %>%  
+        mutate(Date=as_date(ob_time)) %>%
+        mutate(Site_Name=sites[i,]$Site_Name)
+    } 
+    site_data <- rbindlist(site_data)          # collapse list into one tibble - 
+    #from https://stackoverflow.com/questions/26177565/converting-nested-list-to-dataframe
+    
+    if(typeof(data)=="list"){
+      data <- rbind(site_data,data) 
+    }else{
+      data <- site_data
+      sites_orig <- sites 
+    }
+  }
+  
+  site_data <- data %>% filter(Site_Name %in% sites_orig$Site_Name)
   return(site_data)
   
 }
@@ -281,7 +305,7 @@ seven_day_dataset <-function(processed_data,rounding_value=2){
   
   table_data <- 
     processed_data$daily %>% group_by(Site,Site_Name) %>%
-    filter(Date>(max(Date)-ddays(7))) %>%
+    filter(Date>(max(Date,na.rm = TRUE)-ddays(7))) %>%
     ungroup() %>%
     select(Site_Name,Date,
            colnames(processed_data$daily)[which(grepl("mean",colnames(processed_data$daily)))]) %>%
@@ -353,12 +377,12 @@ seven_day_DT <- function(processed_data){
   result <- table_data %>% arrange(Site_Name,Date) %>%
     datatable( colnames = c('Site Name', 'Date', 'Avg. Air Temperatue', 'Avg. Relative Humidity', 'Avg. Wind Speed','Avg Visibility'),
                extensions = c('Buttons','Responsive','KeyTable'),
-               options = list(
-                 initComplete = JS(
+               options = list(                      
+                 initComplete = JS(                                    #https://stackoverflow.com/questions/49782385/changing-font-in-dt-package/49966961
                    "function(settings, json) {",
-                   "$('body').css({'font-family': 'Titillium'});",
+                  "$('body').css({'font-family': 'Roboto'});",           
                    "}"
-                 ),
+                  ),
                  pageLength = 7,
                  lengthMenu = c(3, 15, 15, 10,10,10,10),
                  dom = 'Bfrtip',
@@ -415,7 +439,7 @@ hutton_plot <-function(processed_data,interactive_flag=FALSE){
           plot.subtitle =element_text(size=10,colour = "azure4",family="Titillium"),
           plot.caption =  element_text(size=10,colour = "azure4",family="Titillium"),
           legend.text = element_text(size=10,colour = "#272928",family="Titillium")) +
-          scale_fill_paletteer_d(colour_palette)
+          scale_fill_paletteer_d(colour_palette) +
     labs(title = "Summary of Days meeting the Hutton Criteria",
          x= "Date",
          y= "Number of Days",

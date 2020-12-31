@@ -18,8 +18,8 @@ sites <- read_csv("Data/Sites.csv")  #### loaded in UI
 shinyServer(function(input, output,session) {
     
     site_names <- paste(sites$Site_Name,collapse = ", ")
-    
     values <- reactiveValues()
+    values$station_data <- 1
     
     toListenPlot <- reactive({
         list(input$locInput,
@@ -36,8 +36,9 @@ shinyServer(function(input, output,session) {
          message(length(input$locInput))
             if(length(input$locInput)>0){
                 values$sites <- sites %>% filter(Site_Name %in% input$locInput)
-                values$station_data<- data_loader(values$sites)
+                values$station_data<- data_loader(values$sites, values$station_data)
                 values$processed_data <- aggregate_data(values$station_data)
+                
             }
             
     })
