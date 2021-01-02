@@ -48,7 +48,13 @@ shinyUI(fluidPage(
     ),
 
     # Application title
-    titlePanel("Weather Report for Selected Stations in the UK"),
+    titlePanel(fluidRow(
+                        column(11,img(src="day-cloud-snow.png",height = 40, width = 40),"Weather Report for Selected Stations in the UK"), # https://uxwing.com/day-cloud-snow-icon/ - no attribution required
+                        column(1,downloadBttn('downloadReportButton', label='Download Word Report',style='material-flat',color='primary',size='xs'))
+                        #column(,downloadButton('downloadCSVButton', 'Download CSV File'))               ### DT already has a inbuilt download button
+        
+                )
+               ),
 
     # Sidebar with a slider input for number of bins
     sidebarLayout(
@@ -70,12 +76,6 @@ shinyUI(fluidPage(
 
         # Show a plot of the generated distribution
         mainPanel(
-            fluidRow(
-                column(10,h3(" ")),
-                column(2,downloadBttn('downloadReportButton', label='Download Word Report',style='material-flat',color='primary',size='xs'))
-                #                            column(3,downloadButton('downloadCSVButton', 'Download CSV File'))            ### DT already has a inbuilt download button
-                
-            ),
             tabsetPanel(type = "pills",
             tabPanel("Summary", 
                      h3("Summary Chart"),

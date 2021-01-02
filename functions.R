@@ -385,7 +385,7 @@ seven_day_DT <- function(processed_data){
                   ),
                  pageLength = 7,
                  lengthMenu = c(3, 15, 15, 10,10,10,10),
-                 dom = 'Bfrtip',
+                 dom = 'Brtip',  #Bfrtip
                  buttons = c('copy', 'csv'),
                  keys=TRUE) )
   
