@@ -70,21 +70,28 @@ shinyUI(fluidPage(
              pickerInput("periodInput","Period",choices=period_key$key,selected = "Monthly"),
              pickerInput("statInput","Statistic",choices=c("Averages"),selected = "Averages"),
              pickerInput("tlInput","Time Axis",choices=c("Calendar Date"),selected = "Calendar Date"),
-             leafletOutput("LocationMap", width = "100%", height = 500)
+             leafletOutput("LocationMap", width = "100%", height = 450)
             
         ),
 
         # Show a plot of the generated distribution
         mainPanel(
             tabsetPanel(type = "pills",
-            tabPanel("Summary", 
-                     h3("Summary Chart"),
-                     girafeOutput("SummaryPlot",width="100%",height = "50%"),
-                     h3("Average Measurements from the last seven days"),
+            tabPanel("Summary Plot", 
+                     h2("Summary Plot"),
+                     br(),
+                     girafeOutput("SummaryPlot",width="100%")),
+            tabPanel("Last 7 Days",
+                     h2("Average Measurements from the last seven days"),
+                     br(),
                      DTOutput("SummaryTable",width="100%")),
             tabPanel("Hutton Criteria",
-                     h3("Hutton Criteria")
-                     ,girafeOutput("HuttonPlot"))
+                     h2("Hutton Criteria"),
+                     br(),
+                     girafeOutput("HuttonPlot",width="100%")),
+            tabPanel("About",
+                     h2("About"),
+                     includeMarkdown("about.md"))
             
         ))
     )

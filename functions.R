@@ -127,10 +127,18 @@ data_loader <- function(sites,data=1){
       site_data[[i]] <- read_csv(paste("Data/Site_",sites[i,]$Site_ID,".csv",sep=""),
                                  col_types="cdddddddd")
       
+      #get the average if same hour has more than one value
+      
+      site_data[[i]] <- site_data[[i]] %>% 
+                        group_by(Site,ob_time,hour,day,month) %>%
+                        summarise(wind_speed=mean(wind_speed,na.rm=TRUE),
+                                  air_temperature=mean(air_temperature,na.rm=TRUE),
+                                  rltv_hum=mean(rltv_hum,na.rm=TRUE),
+                                  visibility=mean(visibility,na.rm=TRUE),
+                                  .groups="drop")
       
       #there are at least two different date formats -  function to uniform
       site_data[[i]]$ob_time <-parse_date_time(site_data[[i]]$ob_time, orders=c("YmdHMS", "dmYHMS","dmYHM"),tz="Europe/London")
-      
       site_data[[i]] <- site_data[[i]] %>%  
         mutate(Date=as_date(ob_time)) %>%
         mutate(Site_Name=sites[i,]$Site_Name)
@@ -215,9 +223,13 @@ aggregate_data <- function(station_data){
 #' @return plot
 plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_value,interactive_flag=FALSE){
 
-  if(chart_value=="raw") stat_value<-"none"
-  if(chart_value=="monthly") time_value<-"Date"  
-  if(chart_value=="monthly") stat_value<-"mean"  
+  if(chart_value=="raw") {
+    stat_value<-"none"
+  }
+  if(chart_value=="monthly"){
+    time_value<-"Date"  
+    stat_value<-"mean"
+  }
   
   text_values <- tribble(~key,~text,
                          "raw","",
@@ -250,6 +262,8 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
                       text_values %>% filter(key==stat_value) %>% pull(text),
                       ")",sep="")
   
+  title.text <- str_replace(title.text,"\\( \\)","")
+  
   x.text <- text_values %>% filter(key==x.value) %>% pull(text)
   y.text <- paste(text_values %>% filter(key==chart_value) %>% pull(text) %>% CapStr(.),
                   text_values %>% filter(key==stat_value) %>% pull(text),
@@ -278,7 +292,9 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
     if(interactive_flag==FALSE){
       p<- p + geom_line()
     }else{
-      p <-p + geom_line_interactive(aes_string(tooltip=tooltip_value,data_id=colour.value))
+      p <-p + 
+          geom_line_interactive(aes_string(tooltip=tooltip_value,data_id=colour.value)) +
+          geom_point_interactive(aes_string(tooltip = tooltip_value,data_id=colour.value))
     }
     p <- p + scale_colour_paletteer_d(colour_palette) 
     
@@ -383,9 +399,9 @@ seven_day_DT <- function(processed_data){
                   "$('body').css({'font-family': 'Roboto'});",           
                    "}"
                   ),
-                 pageLength = 7,
+                 pageLength = 14,
                  lengthMenu = c(3, 15, 15, 10,10,10,10),
-                 dom = 'Brtip',  #Bfrtip
+                 dom = 'Brtip',                                        # change to Bfrtip to add search box
                  buttons = c('copy', 'csv'),
                  keys=TRUE) )
   
@@ -431,7 +447,8 @@ location_map <- function(sites,height_value=300){
 hutton_plot <-function(processed_data,interactive_flag=FALSE){
   
   p<-processed_data$hutton %>% filter(!is.na(hutton_days)) %>%
-    mutate(tooltip_text =paste0("Site: ",Site_Name,"\n Date: ",Date,"\n Hutton Days: ",hutton_days)) %>%
+    mutate(Month=paste(lubridate::month(Date,label=TRUE,abbr=TRUE),year(Date),sep=" ")) %>%
+    mutate(tooltip_text =paste0("Site: ",Site_Name,"\n Month: ",Month,"\n Hutton Days: ",hutton_days)) %>%
     ggplot(aes(x=Date,y=hutton_days,colour=Site_Name)) +
     theme_minimal() +
     theme(legend.position="right",
