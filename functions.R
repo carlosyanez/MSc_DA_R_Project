@@ -27,7 +27,7 @@ rm(packages,i,result)
 ############################### 
 ### LOAD FONTS USED IN PLOTS 
 
-font_add_google("Roboto","Titillium")
+font_add_google("Roboto","Roboto")
 #font_add("Arial Narrow","Arial Narrow")
 showtext_auto()
 colour_palette <- "ggsci::nrc_npg"
@@ -109,7 +109,7 @@ hutton_criteria <- function(station_data){
 #' @param  sites tibble with (subset) of stations of add (loaded from sites.csv)
 #' @param  data  previously loaded dataset
 #' @return tibble "raw" station data 
-data_loader <- function(sites,data=1){
+data_loader <- function(sites,data=1,time_zone="UTC",date_formats=c("YmdHMS", "dmYHMS","dmYHM")){
   
   site_data <- list()
   
@@ -138,7 +138,7 @@ data_loader <- function(sites,data=1){
                                   .groups="drop")
       
       #there are at least two different date formats -  function to uniform
-      site_data[[i]]$ob_time <-parse_date_time(site_data[[i]]$ob_time, orders=c("YmdHMS", "dmYHMS","dmYHM"),tz="Europe/London")
+      site_data[[i]]$ob_time <-parse_date_time(site_data[[i]]$ob_time, orders=date_formats,tz=time_zone)
       site_data[[i]] <- site_data[[i]] %>%  
         mutate(Date=as_date(ob_time)) %>%
         mutate(Site_Name=sites[i,]$Site_Name)
@@ -221,7 +221,7 @@ aggregate_data <- function(station_data){
 #' @param  time_value   Date,#day_of_week, #hour_of_week
 #' @param  interactive_flag whether output is ggplot or ggiraph object (default FALSE)
 #' @return plot
-plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_value,interactive_flag=FALSE){
+plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_value,interactive_flag=FALSE,title_format="all"){
 
   if(chart_value=="raw") {
     stat_value<-"none"
@@ -255,12 +255,22 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
   y.value<- ifelse(stat_value=="none",meas_value,paste(stat_value,meas_value,sep="_"))
   colour.value <-"Site_Name"
   colour.text <- "Location"
-  title.text <- paste(text_values %>% filter(key==meas_value) %>% pull(text),
-                      " (",
-                      text_values %>% filter(key==chart_value) %>% pull(text),
-                      " ",
-                      text_values %>% filter(key==stat_value) %>% pull(text),
-                      ")",sep="")
+  if(title_format=="patchwork"){
+    title.text <- paste(text_values %>% filter(key==chart_value) %>% pull(text),
+                        " ",
+                        text_values %>% filter(key==stat_value) %>% pull(text),
+                        sep="")
+    
+    title.text <- CapStr(title.text)
+    
+  }else{
+    title.text <- paste(text_values %>% filter(key==meas_value) %>% pull(text),
+                        " (",
+                        text_values %>% filter(key==chart_value) %>% pull(text),
+                        " ",
+                        text_values %>% filter(key==stat_value) %>% pull(text),
+                        ")",sep="")
+  }
   
   title.text <- str_replace(title.text,"\\( \\)","")
   
@@ -272,29 +282,57 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
   
   
   plotting_data <- processed_data[[which(names(processed_data)==chart_value)]] %>% 
-    select(matches(paste("Date",x.value,y.value,colour.value,sep="|"))) 
+                   select(Date_value=Date,
+                          x_value=matches(x.value),                                  # note that matches() may produce more than one result
+                          y_value=matches(y.value),                                  # but in this case the attribute (column) names should be unique!
+                          colour_value=matches(colour.value))   %>%
+                    filter(!is.na(y_value)) 
+  
+  ### Format date for tooltip based on scale
+  
+  if(chart_value=="monthly"){
+    plotting_data <- plotting_data %>%
+                     mutate(Date_text = str_c(lubridate::month(Date_value,label=TRUE,abbr=TRUE),
+                                              lubridate::year(Date_value),sep=" "))
+  }else{
+    plotting_data <- plotting_data %>%
+                     mutate(Date_text = str_c(lubridate::day(Date_value),
+                                              lubridate::month(Date_value,label=TRUE,abbr=TRUE),
+                                              lubridate::year(Date_value),sep=" "))
+  }
+  
+  plotting_data <- plotting_data %>%
+                    mutate(tooltip_value=str_c(plotting_data$colour_value,
+                           "\n Date: ",
+                           plotting_data$Date_text,
+                            "\n",
+                           text_values %>% filter(key==meas_value) %>% pull(text),
+                            ": ",
+                           round(plotting_data$y_value,3))) %>%
+                    select(-Date_text)
+                    
 
 
-  p <- plotting_data %>% ggplot(aes_string(x=x.value,y=y.value,colour=colour.value)) +
+  p <- plotting_data %>% ggplot(aes(x=x_value,y=y_value,colour=colour_value)) +
     theme_minimal() +
     theme(legend.position="right",
-          plot.title = element_text(size=16,face="bold",colour = "#272928",family="Titillium"),
-          plot.subtitle =element_text(size=10,colour = "azure4",family="Titillium"),
-          plot.caption =  element_text(size=10,colour = "azure4",family="Titillium"),
-          legend.text = element_text(size=10,colour = "#272928",family="Titillium")) +
+          plot.title = element_text(size=16,face="bold",colour = "#272928",family="Roboto"),
+          plot.subtitle =element_text(size=10,colour = "azure4",family="Roboto"),
+          plot.caption =  element_text(size=10,colour = "azure4",family="Roboto"),
+          legend.text = element_text(size=10,colour = "#272928",family="Roboto")) +
     labs(title = title.text,
          x= x.text,
          y= y.text,
          colour=colour.text)
   
-  tooltip_value <- "Site_Name"
+
   if(time_value=="Date"){
     if(interactive_flag==FALSE){
       p<- p + geom_line()
     }else{
       p <-p + 
-          geom_line_interactive(aes_string(tooltip=tooltip_value,data_id=colour.value)) +
-          geom_point_interactive(aes_string(tooltip = tooltip_value,data_id=colour.value))
+          geom_line_interactive(aes(tooltip=colour_value,data_id=colour_value)) +
+          geom_point_interactive(aes(tooltip = tooltip_value,data_id=colour_value),size=.8)
     }
     p <- p + scale_colour_paletteer_d(colour_palette) 
     
@@ -302,11 +340,26 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
     if(interactive_flag==FALSE){
       p<- p + geom_point()
     }else{
-      p<- p + geom_point_interactive(aes_string(tooltip = tooltip_value,data_id=colour.value))
+      p<- p + geom_point_interactive(aes(tooltip = tooltip_value,data_id=colour_value))
     }
     p <- p +scale_fill_paletteer_d(colour_palette) 
   }
-
+  
+###Add message if no data is avaiable
+  
+ if(nrow(plotting_data)==0){
+   
+    p$data <- tibble(Date_value=as_date('1//1/1900'),
+                                 x_value=1,
+                                 y_value=1,
+                                colour_value="no data available",
+                                tooltip_value="No Data Available")
+    p <- p + geom_text(aes(x_value, y_value, label=tooltip_value), colour="red", size=8)
+  
+ }
+  
+  
+  
   return(p)
 }
 
@@ -353,8 +406,8 @@ seven_day_datatable <- function(processed_data){
       mean_rltv_hum="Avg. Rel Hum",
       mean_wind_speed="Avg. Wind Speed",
       mean_visibility="Avg Visibility") %>%
-    font(fontname = "Titillium",part="all")   %>%
-    fontsize(size = 14, part = "all")
+    font(fontname = "Roboto",part="all")   %>%
+    fontsize(size = 12, part = "all")
   
   
   
@@ -452,10 +505,10 @@ hutton_plot <-function(processed_data,interactive_flag=FALSE){
     ggplot(aes(x=Date,y=hutton_days,colour=Site_Name)) +
     theme_minimal() +
     theme(legend.position="right",
-          plot.title = element_text(size=16,face="bold",colour = "#272928",family="Titillium"),
-          plot.subtitle =element_text(size=10,colour = "azure4",family="Titillium"),
-          plot.caption =  element_text(size=10,colour = "azure4",family="Titillium"),
-          legend.text = element_text(size=10,colour = "#272928",family="Titillium")) +
+          plot.title = element_text(size=16,face="bold",colour = "#272928",family="Roboto"),
+          plot.subtitle =element_text(size=10,colour = "azure4",family="Roboto"),
+          plot.caption =  element_text(size=10,colour = "azure4",family="Roboto"),
+          legend.text = element_text(size=10,colour = "#272928",family="Roboto")) +
           scale_fill_paletteer_d(colour_palette) +
     labs(title = "Summary of Days meeting the Hutton Criteria",
          x= "Date",

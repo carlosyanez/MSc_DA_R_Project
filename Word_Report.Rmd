@@ -1,6 +1,8 @@
 ---
-#title: "Weather Report"
-output: word_document
+#title: "Weather Report "
+output:
+  officedown::rdocx_document:
+    reference_docx: template.docx
 always_allow_html: true
 params:
   site_selection: !r c("Abbotsinch", "Heathrow")
@@ -11,9 +13,28 @@ params:
 library("tidyverse")
 source("functions.R")
 
+
+packages <- c("officedown","officer")
+loaded_packages <- paste0(search(),sep=" ",collapse = "")
+packages <- tibble(package = packages)
+packages <- packages %>% mutate(loaded=str_detect(loaded_packages, package, negate = FALSE)) %>% pull(package)
+
+if(length(packages)>0 ){
+    for(i in 1:length(packages)){
+        result <- require(packages[i],character.only = TRUE)
+        if(!result){
+            install.packages(packages[i])
+            library(packages[i],character.only = TRUE)
+        }
+    }
+}
+
+#don't show code, set image resolution
 knitr::opts_chunk$set(echo = FALSE,warning=FALSE,message=FALSE,
-                      fig.height=3,
-                      dpi = 600, dev.args = list(bg = 'transparent')) #don't show code
+ #                     fig.height=8,
+                      dpi = 600, dev.args = list(bg = 'transparent'))
+
+
 
 #load data and subsetdata Site_Nameand subset
 sites <- read_csv("Data/Sites.csv")
@@ -21,14 +42,23 @@ sites <- read_csv("Data/Sites.csv")
 
 sites <- sites %>% filter(Site_Name %in% params$site_selection)
 
-site_names <- paste(sites$Site_Name,collapse = ", ")
+site_names <- paste(params$site_selection,collapse = ", ")
 
 station_data<- data_loader(sites)
 processed_data <- aggregate_data(station_data)
 
+layout <- "
+##BB
+AABB
+AACC
+##CC
+"
+
 ```
 
 # Weather Report for `r site_names`
+
+`r run_pagebreak()`
 
 ## Seven Day Summary
 
@@ -36,24 +66,33 @@ processed_data <- aggregate_data(station_data)
 
 seven_day_datatable(processed_data)
 ```
+`r run_pagebreak()`
 
 ## Daily Charts
-
 ### Air Temperature
 
+
 ```{r}
-plot_data(processed_data,"daily","mean","air_temperature","Date")
+
+plot_data(processed_data,"monthly","mean","air_temperature","Date",title_format="patchwork") 
+
+#  plot_layout(design = layout) +
+#  plot_annotation(title="Air Temperature")
+
+
+```
+
+
+```{r}
+plot_data(processed_data,"daily","max","air_temperature","Date",title_format="patchwork") 
 
 ```
 
 ```{r}
-plot_data(processed_data,"daily","max","air_temperature","Date")
+plot_data(processed_data,"daily","min","air_temperature","Date",title_format="patchwork") 
 ```
 
-```{r}
-plot_data(processed_data,"daily","min","air_temperature","Date")
-```
-
+`r run_pagebreak()`
 ### Relative Humidity
 
 ```{r}
@@ -68,6 +107,7 @@ plot_data(processed_data,"daily","max","rltv_hum","Date")
 plot_data(processed_data,"daily","min","rltv_hum","Date")
 ```
 
+`r run_pagebreak()`
 ### Wind Speed
 
 ```{r}
@@ -81,7 +121,7 @@ plot_data(processed_data,"daily","max","wind_speed","Date")
 ```{r}
 plot_data(processed_data,"daily","min","wind_speed","Date")
 ```
-
+`r run_pagebreak()`
 ### Visibility
 
 ```{r}

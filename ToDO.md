@@ -1,17 +1,13 @@
 
 
-#meaningful tooltip with ggiraph?
-### fix tooltip https://rpubs.com/cardiomoon/231820
+### COMMENT CODE!!!!
+###About.md
 
-### Improve Design
-#### make map aligned to bottom --- OK???
-#### Floating filter menu
 
-###Deal with missing values !!!!!
 
-@@@ WORD REPORT (officedown?)
-###Cross talk for in chart filtering
+@@@ WORD REPORT (officedown)
+###better formatting
+### header and footer
+## landscape orientation
+## all charts in one page
 
-### Check for duplicated entries for each date and everage
-
-###Check error when plotting Visiblity: :: ids don't have the same length than str (most often, it occurs because of clipping) (Abbotsnitcg, Alderson, benson)
