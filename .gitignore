@@ -6,7 +6,7 @@ EDA.nb.html
 EDA.Rmd
 Word_Report.docx
 www/bootstrap.css
-About.html
+About.md
 .RData
 Word_Report.Rmd
 reference_doc.docx
@@ -23,3 +23,7 @@ png/p_wind_max.png
 png/p_wind_mean.png
 png/p_wind_min.png
 rsconnect/shinyapps.io/carlosyanezs/Weahter_App_UoG.dcf
+rsconnect/shinyapps.io/carlosyanezs/Weather_App_UoG.dcf
+ToDO.md
+ToDO.md
+ToDO.md

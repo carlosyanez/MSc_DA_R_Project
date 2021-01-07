@@ -1,11 +1,4 @@
-#
-# This is the user-interface definition of a Shiny web application. You can
-# run the application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
+##
 
 library(shiny)
 library(tidyverse)
@@ -15,7 +8,7 @@ title_text <- "Weather Report for Selected Stations in the UK"
 ############################### 
 ### LOAD PACKAGES 
 
-packages <- c("shinyWidgets",   # "improved" filter widgets - http://shinyapps.dreamrs.fr/shinyWidgets/
+packages <- c("shinyWidgets",   # "nicer" filter widgets - http://shinyapps.dreamrs.fr/shinyWidgets/
               "shinythemes")    #  ready to use bootstrap themes for shiny - 
 
 loaded_packages <- paste0(search(),sep=" ",collapse = "")
@@ -68,7 +61,7 @@ shinyUI(fluidPage(
              pickerInput("periodInput","Period",choices=period_key$key,selected = "Monthly"),
              pickerInput("statInput","Statistic",choices=c("Averages"),selected = "Averages"),
              pickerInput("tlInput","Time Axis",choices=c("Calendar Date"),selected = "Calendar Date"),
-             leafletOutput("LocationMap", width = "100%", height = 450)
+             leafletOutput("LocationMap", width = "100%", height = 325)
             
         ),
 
@@ -94,7 +87,7 @@ shinyUI(fluidPage(
                      girafeOutput("HuttonPlot",width="100%")),
             tabPanel("Disclaimer",
                      h2("Disclaimer"),
-                     includeMarkdown("About.md"))
+                     includeHTML("about.html"))
             
         ))
     )

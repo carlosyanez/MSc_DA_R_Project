@@ -1,7 +1,4 @@
 
-###DEBUGGING
-#### RAW charts do not work on shinyapps -x_value not found!!!
-
 
 ###AUTO GENERATE LIBRARY FiLE For SHiNY deployment
 

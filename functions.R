@@ -12,7 +12,7 @@ packages <- c("lubridate",   #date manipulation (tidyverse)
               "ggsci",       # colour palette
               "showtext",    # add fonts
               "ggiraph",     # interactive charts
-              "data.table", #  function rbdinlist
+              "data.table",  #  function rbdinlist
               "flextable",   # static table (for word document) 
               "officer",     # functions for word document
               "DT",          # interactive table
@@ -57,8 +57,8 @@ stat_key <- tibble(key=c("Averages","Maxima","Minima","Raw"),
                    daily_filter=c(TRUE,TRUE,TRUE,FALSE),
                    monthly_filter=c(TRUE,FALSE,FALSE,FALSE),
                    raw_filter=c(FALSE,FALSE,FALSE,TRUE))
-tl_key <-tibble(key=c("Calendar Date","Day of the Week","Day of the Month","Hour of the Day","Hour of the week"),
-                value=c("Date","day_of_week","day_of_month","hour","hour_of_week"),
+tl_key <-tibble(key=c("Calendar Date","Day of the Week","Day of the Month","Hour of the Day","Hour of the Week"),
+                value=c("Date","day_of_week","day_of_month","hour_of_day","hour_of_week"),
                 daily_filter=c(TRUE,TRUE,TRUE,FALSE,FALSE),
                 monthly_filter=c(TRUE,FALSE,FALSE,FALSE,FALSE),
                 raw_filter=c(FALSE,FALSE,FALSE,TRUE,TRUE))
@@ -186,8 +186,10 @@ aggregate_data <- function(station_data){
   result$raw <- station_data %>% 
     mutate(day_of_week=wday(Date),                                           #day of the week  
            hour_of_week=hour+(day_of_week-1)*24,                             #hour of the week
-           day_of_month=day(Date))                                           # day of the month
-  
+           day_of_month=day(Date),                                           # day of the month
+           hour_of_day=hour)   %>%                                           #hour of day
+          select(-hour)
+           
   result$daily <-  station_data %>%  group_by(Site,Site_Name,Date)   %>% 
     summarise(mean_air_temperature=mean(air_temperature,na.rm = TRUE),              #calculate daily means
               mean_rltv_hum = mean(rltv_hum,na.rm = TRUE),
@@ -235,7 +237,8 @@ aggregate_data <- function(station_data){
 #' @param  time_value   Date,#day_of_week, #hour_of_week
 #' @param  interactive_flag whether output is ggplot or ggiraph object (default FALSE)
 #' @return plot
-plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_value,interactive_flag=FALSE,title_format="all"){
+plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_value,interactive_flag=FALSE,title_format="all",
+                      size1=16,size2=10){
 
   if(chart_value=="raw") {
     stat_value<-"none"
@@ -252,7 +255,7 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
                          "daily","daily",
                          "monthly","monthly",
                          "Date","Date",
-                         "hour_of_day","Our of the day",
+                         "hour_of_day","Hour of the day",
                          "day_of_week","Day of the week",
                          "hour","Hour of the week",
                          "mean","average",
@@ -337,10 +340,10 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
   p <- plotting_data %>% ggplot(aes(x=x_value,y=y_value,colour=colour_value)) +
     theme_minimal() +
     theme(legend.position="right",
-          plot.title = element_text(size=16,face="bold",colour = "#272928",family="Roboto"),
-          plot.subtitle =element_text(size=10,colour = "azure4",family="Roboto"),
-          plot.caption =  element_text(size=10,colour = "azure4",family="Roboto"),
-          legend.text = element_text(size=10,colour = "#272928",family="Roboto")) +
+          plot.title = element_text(size=size1,face="bold",colour = "#272928",family="Roboto"),
+          axis.text,x =  element_text(size=size2,colour = "#272928",family="Roboto"),
+          axis.title.y = element_text(size=size2,colour = "#272928",family="Roboto"),
+          legend.text = element_text(size=size2,colour = "#272928",family="Roboto")) +
     labs(title = title.text,
          x= x.text,
          y= y.text,
@@ -495,7 +498,7 @@ location_map <- function(sites,height_value=300){
   cp <- paletteer_d(colour_palette)
   sites_map <- sites %>% arrange(Site_Name)
   sites_map$colour <- cp[1:nrow(sites_map)]
-  map <- leaflet(height=height_value,options=leafletOptions(dragging=FALSE,zoomControl = FALSE,minZoom = 5,maxZoom = 5)) %>%
+  map <- leaflet(height=height_value,options=leafletOptions(dragging=FALSE,zoomControl = FALSE,minZoom = 4,maxZoom = 4)) %>%
     addProviderTiles("CartoDB") %>%
     addPolygons(data = bounds, group = "Countries", 
                 color = "red", 

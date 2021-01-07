@@ -57,6 +57,8 @@ site_names <- stri_replace_last_fixed(site_names,",",", and")    # Oxford comma!
 #plot dimensionsa
 column_witdh <- 3.25                        ### set up manually
 column_height <- (1199/1500)*column_witdh   ### ration set up after checking png output (not exepcted to change, so set manually)
+s1 <-32
+s2 <-24
 
 ```
 \
@@ -97,9 +99,9 @@ block_section(
   )
 )
 
-p_temp_mean <- plot_data(processed_data,"monthly","mean","air_temperature","Date") 
-p_temp_max <- plot_data(processed_data,"daily","max","air_temperature","Date") 
-p_temp_min <-plot_data(processed_data,"daily","min","air_temperature","Date") 
+p_temp_mean <- plot_data(processed_data,"monthly","mean","air_temperature","Date",size1=s1,size2=s2) 
+p_temp_max <- plot_data(processed_data,"daily","max","air_temperature","Date",size1=s1,size2=s2) 
+p_temp_min <-plot_data(processed_data,"daily","min","air_temperature","Date",size1=s1,size2=s2) 
 
 if(!dir.exists("png")) dir.create("png")
 ggsave("png/p_temp_mean.png",p_temp_mean)
@@ -140,9 +142,9 @@ block_section(
   )
 )
 
-p_hum_mean <- plot_data(processed_data,"monthly","mean","rltv_hum","Date") 
-p_hum_max <- plot_data(processed_data,"daily","max","rltv_hum","Date") 
-p_hum_min <-plot_data(processed_data,"daily","min","rltv_hum","Date") 
+p_hum_mean <- plot_data(processed_data,"monthly","mean","rltv_hum","Date",size1=s1,size2=s2) 
+p_hum_max <- plot_data(processed_data,"daily","max","rltv_hum","Date",size1=s1,size2=s2) 
+p_hum_min <-plot_data(processed_data,"daily","min","rltv_hum","Date",size1=s1,size2=s2) 
 
 if(!dir.exists("png")) dir.create("png")
 ggsave("png/p_hum_mean.png",p_hum_mean)
@@ -184,9 +186,9 @@ block_section(
   )
 )
 
-p_wind_mean <- plot_data(processed_data,"monthly","mean","wind_speed","Date") 
-p_wind_max <- plot_data(processed_data,"daily","max","wind_speed","Date") 
-p_wind_min <-plot_data(processed_data,"daily","min","wind_speed","Date") 
+p_wind_mean <- plot_data(processed_data,"monthly","mean","wind_speed","Date",size1=s1,size2=s2) 
+p_wind_max <- plot_data(processed_data,"daily","max","wind_speed","Date",size1=s1,size2=s2) 
+p_wind_min <-plot_data(processed_data,"daily","min","wind_speed","Date",size1=s1,size2=s2) 
 
 if(!dir.exists("png")) dir.create("png")
 ggsave("png/p_wind_mean.png",p_wind_mean)
@@ -227,9 +229,9 @@ block_section(
   )
 )
 
-p_visib_mean <- plot_data(processed_data,"monthly","mean","visibility","Date") 
-p_visib_max <- plot_data(processed_data,"daily","max","visibility","Date") 
-p_visib_min <-plot_data(processed_data,"daily","min","visibility","Date") 
+p_visib_mean <- plot_data(processed_data,"monthly","mean","visibility","Date",size1=s1,size2=s2) 
+p_visib_max <- plot_data(processed_data,"daily","max","visibility","Date",size1=s1,size2=s2) 
+p_visib_min <-plot_data(processed_data,"daily","min","visibility","Date",size1=s1,size2=s2) 
 
 if(!dir.exists("png")) dir.create("png")
 ggsave("png/p_visib_mean.png",p_visib_mean)
