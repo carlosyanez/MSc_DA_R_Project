@@ -3,10 +3,20 @@
 
 
 ############################### 
-### LOAD PACKAGES 
+### LOAD PACKAGES  - IT WILL INSTALL THEM IF NOT FOUND
 
-packages <- c("lubridate","leaflet","maps","paletteer","ggsci","showtext","ggiraph","data.table",
-              "flextable","officer","rmarkdown","patchwork","shinythemes","DT")
+packages <- c("lubridate",   #date manipulation (tidyverse)
+              "leaflet",     # interactive maps
+              "maps",        # used to create UK bounding box
+              "paletteer",   # colour palette wrapper for ggplot
+              "ggsci",       # colour palette
+              "showtext",    # add fonts
+              "ggiraph",     # interactive charts
+              "data.table", #  function rbdinlist
+              "flextable",   # static table (for word document) 
+              "officer",     # functions for word document
+              "DT",          # interactive table
+              "rmarkdown")   # knitting with markdown
 
 loaded_packages <- paste0(search(),sep=" ",collapse = "")
 packages <- tibble(package = packages)
@@ -146,6 +156,7 @@ data_loader <- function(sites,data=1,time_zone="UTC",date_formats=c("YmdHMS", "d
     site_data <- rbindlist(site_data)          # collapse list into one tibble - 
     #from https://stackoverflow.com/questions/26177565/converting-nested-list-to-dataframe
     
+    # check if there any pre-existing dataset and merge with it
     if(typeof(data)=="list"){
       data <- rbind(site_data,data) 
     }else{
@@ -154,6 +165,7 @@ data_loader <- function(sites,data=1,time_zone="UTC",date_formats=c("YmdHMS", "d
     }
   }
   
+  # retain listed sitenames only
   site_data <- data %>% filter(Site_Name %in% sites_orig$Site_Name)
   return(site_data)
   
@@ -231,6 +243,8 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
     stat_value<-"mean"
   }
   
+  #long from labels
+  
   text_values <- tribble(~key,~text,
                          "raw","",
                          "daily","daily",
@@ -250,6 +264,7 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
   )
   
   
+  #Get all labels
   
   x.value<-time_value
   y.value<- ifelse(stat_value=="none",meas_value,paste(stat_value,meas_value,sep="_"))
@@ -280,6 +295,7 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
                   text_values %>% filter(key==meas_value) %>% pull(text) %>% tolower(.),
                   sep=" ")
   
+  #obtain and format data to plot 
   
   plotting_data <- processed_data[[which(names(processed_data)==chart_value)]] %>% 
                    select(Date_value=Date,
@@ -301,6 +317,8 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
                                               lubridate::year(Date_value),sep=" "))
   }
   
+  #create tooltip
+  
   plotting_data <- plotting_data %>%
                     mutate(tooltip_value=str_c(plotting_data$colour_value,
                            "\n Date: ",
@@ -312,6 +330,7 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
                     select(-Date_text)
                     
 
+  #base plot
 
   p <- plotting_data %>% ggplot(aes(x=x_value,y=y_value,colour=colour_value)) +
     theme_minimal() +
@@ -326,6 +345,8 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
          colour=colour.text)
   
 
+  # add lines with/without inteactivity
+  
   if(time_value=="Date"){
     if(interactive_flag==FALSE){
       p<- p + geom_line()
@@ -345,7 +366,7 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
     p <- p +scale_fill_paletteer_d(colour_palette) 
   }
   
-###Add message if no data is avaiable
+ ##Add message if no data is avaiable
   
  if(nrow(plotting_data)==0){
    
@@ -357,8 +378,6 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
     p <- p + geom_text(aes(x_value, y_value, label=tooltip_value), colour="red", size=8)
   
  }
-  
-  
   
   return(p)
 }
@@ -409,8 +428,6 @@ seven_day_datatable <- function(processed_data){
     font(fontname = "Roboto",part="all")   %>%
     fontsize(size = 12, part = "all")
   
-  
-  
   #from https://stackoverflow.com/questions/44700492/r-flextable-how-to-add-a-table-wide-horizontal-border-under-a-merged-cell
   
   row_loc <- rle(cumsum( result$body$spans$columns[,1] ))$values
@@ -448,14 +465,14 @@ seven_day_DT <- function(processed_data){
                extensions = c('Buttons','Responsive','KeyTable'),
                options = list(                      
                  initComplete = JS(                                    #https://stackoverflow.com/questions/49782385/changing-font-in-dt-package/49966961
-                   "function(settings, json) {",
+                   "function(settings, json) {",                       ## THIS CHANGES THE FONT FAMILY FOR ALL HTML COMPONENTS IN SHINY APP!!!!
                   "$('body').css({'font-family': 'Roboto'});",           
                    "}"
                   ),
                  pageLength = 14,
                  lengthMenu = c(3, 15, 15, 10,10,10,10),
                  dom = 'Brtip',                                        # change to Bfrtip to add search box
-                 buttons = c('copy', 'csv'),
+                 buttons = 'none',
                  keys=TRUE) )
   
   return(result)
@@ -485,6 +502,7 @@ location_map <- function(sites,height_value=300){
     addCircleMarkers(~Longitude, ~Latitude,data=sites_map,
                      color=~colour,
                      radius=5,
+                     fillOpacity = 0.9,
                      popup = ~Site_Name)
   
   

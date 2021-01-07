@@ -10,3 +10,15 @@ About.html
 .RData
 Word_Report.Rmd
 reference_doc.docx
+png/p_temp_max.png
+png/p_temp_mean.png
+png/p_temp_min.png
+png/p_hum_max.png
+png/p_hum_mean.png
+png/p_hum_min.png
+png/p_visib_max.png
+png/p_visib_mean.png
+png/p_visib_min.png
+png/p_wind_max.png
+png/p_wind_mean.png
+png/p_wind_min.png

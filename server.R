@@ -9,6 +9,7 @@
 
 library(shiny)
 library(tidyverse)
+
 source("functions.R")
 
 
@@ -35,10 +36,14 @@ shinyServer(function(input, output,session) {
          message(input$locInput)
          message(length(input$locInput))
             if(length(input$locInput)>0){
+                #load and process data
+                
                 values$sites <- sites %>% filter(Site_Name %in% input$locInput)
                 values$station_data<- data_loader(values$sites, values$station_data)
                 values$processed_data <- aggregate_data(values$station_data)
                 
+                #save data in "transfer" file to speed up word report
+                # saveRDS(values$processed_data,"processed_data.RDS")  # decided not to use!
             }
             
     })
@@ -136,7 +141,7 @@ shinyServer(function(input, output,session) {
     output$downloadReportButton <- downloadHandler(
         filename = "report.docx",
         content = function(file){
-        render("Word_Report.Rmd", output_format="word_document",
+        render("Word_Report.Rmd", 
                output_file=file, params=list(site_selection=input$locInput))
         # ˆˆˆˆˆˆˆˆˆˆˆˆˆˆˆˆˆˆˆˆˆˆ
         # input$a now available as params$a

@@ -15,8 +15,9 @@ source("functions.R")
 ############################### 
 ### LOAD PACKAGES 
 
-packages <- c("shinyWidgets","shinythemes")
-#shinythemes
+packages <- c("shinyWidgets",   # "improved" filter widgets - http://shinyapps.dreamrs.fr/shinyWidgets/
+              "shinythemes")    #  ready to use bootstrap themes for shiny - 
+
 loaded_packages <- paste0(search(),sep=" ",collapse = "")
 packages <- tibble(package = packages)
 packages <- packages %>% mutate(loaded=str_detect(loaded_packages, package, negate = FALSE)) %>% pull(package)
@@ -37,7 +38,6 @@ sites <- read_csv("Data/Sites.csv")
 sites <- sites %>% arrange(Site_Name)
 
 
-# Define UI for application that draws a histogram
 shinyUI(fluidPage(
    theme = shinytheme("flatly"),
 
@@ -51,16 +51,14 @@ shinyUI(fluidPage(
     titlePanel(fluidRow(
                         column(11,img(src="day-cloud-snow.png",height = 40, width = 40),"Weather Report for Selected Stations in the UK"), # https://uxwing.com/day-cloud-snow-icon/ - no attribution required
                         column(1,downloadBttn('downloadReportButton', label='Download Word Report',style='material-flat',color='primary',size='xs'))
-                        #column(,downloadButton('downloadCSVButton', 'Download CSV File'))               ### DT already has a inbuilt download button
-        
                 )
                ),
 
-    # Sidebar with a slider input for number of bins
+    # Sidebar with filters and map
     sidebarLayout(
         sidebarPanel(
              pickerInput("locInput","Location", choices=sites$Site_Name,
-                         options = pickerOptions(actionsBox = TRUE ,
+                         options = pickerOptions(actionsBox = FALSE ,
                                          maxOptions=5,
                                         maxOptionsText="Only 5 locations allowed",
                                         style = "btn-primary"
@@ -74,24 +72,29 @@ shinyUI(fluidPage(
             
         ),
 
-        # Show a plot of the generated distribution
+        # Main panel with tabs with plots and table
         mainPanel(
             tabsetPanel(type = "pills",
             tabPanel("Summary Plot", 
                      h2("Summary Plot"),
                      br(),
+                     br(),
                      girafeOutput("SummaryPlot",width="100%")),
             tabPanel("Last 7 Days",
                      h2("Average Measurements from the last seven days"),
+                     br(),
+                     downloadBttn('downloadCSVButton', label='Download 7 day Summary (CSV)',style='material-flat',color='primary',size='s'),
+                     br(),
                      br(),
                      DTOutput("SummaryTable",width="100%")),
             tabPanel("Hutton Criteria",
                      h2("Hutton Criteria"),
                      br(),
+                     br(),
                      girafeOutput("HuttonPlot",width="100%")),
-            tabPanel("About",
-                     h2("About"),
-                     includeMarkdown("about.md"))
+            tabPanel("Disclaimer",
+                     h2("Disclaimer"),
+                     includeMarkdown("About.md"))
             
         ))
     )
