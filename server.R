@@ -1,11 +1,8 @@
-#
-# This is the server logic of a Shiny web application. You can run the
-# application by clicking 'Run App' above.
-#
-# Find out more about building applications with Shiny here:
-#
-#    http://shiny.rstudio.com/
-#
+############################################################################################################
+########################### ODL Masters in Data Analytics - University of Glasgow ########################## 
+###########################  R Programming T1 2020/2021                           ########################## 
+###########################  Assignment 4 (PROJECT) - Due Date 25 Jan 2021        ##########################
+#####  AUTHOR: Carlos YÁÑEZ SANTIBÁÑEZ   ###################################################################
 
 library(shiny)
 library(tidyverse)
@@ -17,10 +14,11 @@ sites <- read_csv("Data/Sites.csv")  #### loaded in UI
 
 
 shinyServer(function(input, output,session) {
-    
+      
     site_names <- paste(sites$Site_Name,collapse = ", ")
     values <- reactiveValues()
     values$station_data <- 1
+   
     
     toListenPlot <- reactive({
         list(input$locInput,
@@ -63,7 +61,7 @@ shinyServer(function(input, output,session) {
                                   interactive_flag=TRUE)
         }
         
-        
+    message(isolate(session$clientData$url_hostname))    
     })
     
     ###Change filter options based on period 
@@ -142,7 +140,7 @@ shinyServer(function(input, output,session) {
         filename = "report.docx",
         content = function(file){
         render("Word_Report.Rmd", 
-               output_file=file, params=list(site_selection=input$locInput))
+               output_file=file, params=list(site_selection=input$locInput,domain=session$clientData$url_hostname))
         # ˆˆˆˆˆˆˆˆˆˆˆˆˆˆˆˆˆˆˆˆˆˆ
         # input$a now available as params$a
         # in rmarkdown

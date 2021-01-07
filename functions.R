@@ -1,3 +1,10 @@
+############################################################################################################
+########################### ODL Masters in Data Analytics - University of Glasgow ########################## 
+###########################  R Programming T1 2020/2021                           ########################## 
+###########################  Assignment 4 (PROJECT) - Due Date 25 Jan 2021        ##########################
+#####  AUTHOR: Carlos YÁÑEZ SANTIBÁÑEZ   ###################################################################
+
+
 ############################### FUNCTIONS USED ACROSS SHINY AND MARKDOWN ############################### 
 ### !!!!! WARNING !!!!! THE FOLLOWING SCRIPT WILL INSTALL PACKAGES
 #### THIS WON'T WORK ON shinyapps.io - include shinyapps_io.R file when deploying
@@ -61,7 +68,7 @@ tl_key <-tibble(key=c("Calendar Date","Day of the Week","Day of the Month","Hour
                 value=c("Date","day_of_week","day_of_month","hour_of_day","hour_of_week"),
                 daily_filter=c(TRUE,TRUE,TRUE,FALSE,FALSE),
                 monthly_filter=c(TRUE,FALSE,FALSE,FALSE,FALSE),
-                raw_filter=c(FALSE,FALSE,FALSE,TRUE,TRUE))
+                raw_filter=c(TRUE,FALSE,FALSE,TRUE,TRUE))
 
 
 
@@ -188,6 +195,7 @@ aggregate_data <- function(station_data){
            hour_of_week=hour+(day_of_week-1)*24,                             #hour of the week
            day_of_month=day(Date),                                           # day of the month
            hour_of_day=hour)   %>%                                           #hour of day
+    mutate(Date=ob_time)       %>%
           select(-hour)
            
   result$daily <-  station_data %>%  group_by(Site,Site_Name,Date)   %>% 
@@ -321,6 +329,16 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
                                               lubridate::month(Date_value,label=TRUE,abbr=TRUE),
                                               lubridate::year(Date_value),sep=" "))
   }
+  if(chart_value=="raw" & time_value=="Date"){
+    plotting_data <- plotting_data %>%
+      mutate(Date_text = str_c(lubridate::day(Date_value),
+                               lubridate::month(Date_value,label=TRUE,abbr=TRUE),
+                               lubridate::year(Date_value),
+                               str_c(lubridate::hour(Date_value),":00",sep=""),
+                               sep=" "))
+    
+    
+  }
   
   #create tooltip
   
@@ -341,8 +359,8 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
     theme_minimal() +
     theme(legend.position="right",
           plot.title = element_text(size=size1,face="bold",colour = "#272928",family="Roboto"),
-          axis.text,x =  element_text(size=size2,colour = "#272928",family="Roboto"),
-          axis.title.y = element_text(size=size2,colour = "#272928",family="Roboto"),
+          axis.text =  element_text(size=size2,colour = "#272928",family="Roboto"),
+          axis.title = element_text(size=size2,colour = "#272928",family="Roboto"),
           legend.text = element_text(size=size2,colour = "#272928",family="Roboto")) +
     labs(title = title.text,
          x= x.text,

@@ -6,6 +6,7 @@ output:
 always_allow_html: false
 params:
   site_selection: !r c("Abbotsinch", "Heathrow","Marham","Waddington")
+  domain: localhost
 ---
 
 ```{r load_data, message=TRUE, warning=FALSE, include=FALSE, paged.print=FALSE}
@@ -57,8 +58,18 @@ site_names <- stri_replace_last_fixed(site_names,",",", and")    # Oxford comma!
 #plot dimensionsa
 column_witdh <- 3.25                        ### set up manually
 column_height <- (1199/1500)*column_witdh   ### ration set up after checking png output (not exepcted to change, so set manually)
-s1 <-32
-s2 <-24
+
+#set different sizes for charts's labels if app is running on shinyapps.io
+
+if(grepl( "shinyapps.io", params$domain, fixed = TRUE)){
+        s1 <-32
+        s2 <-24
+        message(1)
+}else{
+      s1 <-16
+      s2 <-10
+      message(2)
+}
 
 ```
 \
@@ -71,10 +82,13 @@ s2 <-24
 # Disclaimer
 \
 
-This report has been created as an assignment for *STATS5078 - R Programming*, part of the MSc in Data Analytics (ODL) programme at the University of Glasgow.
+This report has been created as an assignment for **STATS5078 - R Programming**, part of the MSc in Data Analytics (ODL) programme at the University of Glasgow.
 \
 
 The content of this file is only displayed for illustrative purposes. The author is not responsible for data accuracy.
+\
+
+Generated on server *`r params$domain`*.
 
 `r run_pagebreak()`
 
@@ -106,7 +120,7 @@ p_temp_min <-plot_data(processed_data,"daily","min","air_temperature","Date",siz
 if(!dir.exists("png")) dir.create("png")
 ggsave("png/p_temp_mean.png",p_temp_mean)
 ggsave("png/p_temp_max.png",p_temp_max)
-ggsave("png/p_temp_min.png",p_temp_max)
+ggsave("png/p_temp_min.png",p_temp_min)
 
 ```
 
@@ -149,7 +163,7 @@ p_hum_min <-plot_data(processed_data,"daily","min","rltv_hum","Date",size1=s1,si
 if(!dir.exists("png")) dir.create("png")
 ggsave("png/p_hum_mean.png",p_hum_mean)
 ggsave("png/p_hum_max.png",p_hum_max)
-ggsave("png/p_hum_min.png",p_hum_max)
+ggsave("png/p_hum_min.png",p_hum_min)
 
 ```
 
@@ -193,7 +207,7 @@ p_wind_min <-plot_data(processed_data,"daily","min","wind_speed","Date",size1=s1
 if(!dir.exists("png")) dir.create("png")
 ggsave("png/p_wind_mean.png",p_wind_mean)
 ggsave("png/p_wind_max.png",p_wind_max)
-ggsave("png/p_wind_min.png",p_wind_max)
+ggsave("png/p_wind_min.png",p_wind_min)
 
 ```
 
@@ -236,7 +250,7 @@ p_visib_min <-plot_data(processed_data,"daily","min","visibility","Date",size1=s
 if(!dir.exists("png")) dir.create("png")
 ggsave("png/p_visib_mean.png",p_visib_mean)
 ggsave("png/p_visib_max.png",p_visib_max)
-ggsave("png/p_visib_min.png",p_visib_max)
+ggsave("png/p_visib_min.png",p_visib_min)
 
 ```
 
