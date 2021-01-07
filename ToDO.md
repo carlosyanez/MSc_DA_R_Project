@@ -1,13 +1,8 @@
 
-
-### COMMENT CODE!!!!
-###About.md
-
+###DEBUGGING
+#### RAW charts do not work on shinyapps -x_value not found!!!
 
 
-@@@ WORD REPORT (officedown)
-###better formatting
-### header and footer
-## landscape orientation
-## all charts in one page
+###AUTO GENERATE LIBRARY FiLE For SHiNY deployment
 
+###ADJUST DPI OF CHARTS IN WORD WHEN GENERATING with multiple text See: https://stackoverflow.com/questions/51812219/using-custom-fonts-on-shinyapps-io

@@ -5,7 +5,7 @@ output:
     reference_docx: template.docx
 always_allow_html: false
 params:
-  site_selection: !r c("Abbotsinch", "Heathrow")
+  site_selection: !r c("Abbotsinch", "Heathrow","Marham","Waddington")
 ---
 
 ```{r load_data, message=TRUE, warning=FALSE, include=FALSE, paged.print=FALSE}
@@ -33,7 +33,7 @@ if(length(packages)>0 ){
 
 #don't show code, set image resolution
 knitr::opts_chunk$set(echo = FALSE,warning=FALSE,message=FALSE,
-                      dpi = 600, dev.args = list(bg = 'transparent'))
+                      dpi = 300, dev.args = list(bg = 'transparent'))
 
 
 

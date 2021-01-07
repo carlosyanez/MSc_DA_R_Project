@@ -10,7 +10,7 @@
 library(shiny)
 library(tidyverse)
 source("functions.R")
-
+title_text <- "Weather Report for Selected Stations in the UK"
 
 ############################### 
 ### LOAD PACKAGES 
@@ -40,7 +40,7 @@ sites <- sites %>% arrange(Site_Name)
 
 shinyUI(fluidPage(
    theme = shinytheme("flatly"),
-
+    title=title_text,
     tags$head(
         tags$style(HTML("
                     @import url('//fonts.googleapis.com/css2?family=Roboto&display=swap');
@@ -49,7 +49,7 @@ shinyUI(fluidPage(
 
     # Application title
     titlePanel(fluidRow(
-                        column(11,img(src="day-cloud-snow.png",height = 40, width = 40),"Weather Report for Selected Stations in the UK"), # https://uxwing.com/day-cloud-snow-icon/ - no attribution required
+                        column(11,img(src="day-cloud-snow.png",height = 40, width = 40),title_text), # https://uxwing.com/day-cloud-snow-icon/ - no attribution required
                         column(1,downloadBttn('downloadReportButton', label='Download Word Report',style='material-flat',color='primary',size='xs'))
                 )
                ),

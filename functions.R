@@ -1,6 +1,6 @@
 ############################### FUNCTIONS USED ACROSS SHINY AND MARKDOWN ############################### 
 ### !!!!! WARNING !!!!! THE FOLLOWING SCRIPT WILL INSTALL PACKAGES
-
+#### THIS WON'T WORK ON shinyapps.io - include shinyapps_io.R file when deploying
 
 ############################### 
 ### LOAD PACKAGES  - IT WILL INSTALL THEM IF NOT FOUND
@@ -17,6 +17,8 @@ packages <- c("lubridate",   #date manipulation (tidyverse)
               "officer",     # functions for word document
               "DT",          # interactive table
               "rmarkdown")   # knitting with markdown
+
+
 
 loaded_packages <- paste0(search(),sep=" ",collapse = "")
 packages <- tibble(package = packages)
@@ -397,7 +399,9 @@ seven_day_dataset <-function(processed_data,rounding_value=2){
     ungroup() %>%
     select(Site_Name,Date,
            colnames(processed_data$daily)[which(grepl("mean",colnames(processed_data$daily)))]) %>%
-    mutate(across(where(is.numeric), round, rounding_value)) 
+    mutate(across(where(is.numeric), round, rounding_value))  %>%
+    arrange(Site_Name,Date)
+  
   
   return(table_data)
   
@@ -457,11 +461,10 @@ seven_day_datatable <- function(processed_data){
 #' @return table
 seven_day_DT <- function(processed_data){
   
- 
   table_data <- seven_day_dataset(processed_data)
   
   result <- table_data %>% arrange(Site_Name,Date) %>%
-    datatable( colnames = c('Site Name', 'Date', 'Avg. Air Temperatue', 'Avg. Relative Humidity', 'Avg. Wind Speed','Avg Visibility'),
+    DT::datatable( colnames = c('Site Name', 'Date', 'Avg. Air Temperature', 'Avg. Relative Humidity', 'Avg. Wind Speed','Avg Visibility'),
                extensions = c('Buttons','Responsive','KeyTable'),
                options = list(                      
                  initComplete = JS(                                    #https://stackoverflow.com/questions/49782385/changing-font-in-dt-package/49966961
@@ -471,8 +474,7 @@ seven_day_DT <- function(processed_data){
                   ),
                  pageLength = 14,
                  lengthMenu = c(3, 15, 15, 10,10,10,10),
-                 dom = 'Brtip',                                        # change to Bfrtip to add search box
-                 buttons = 'none',
+                 dom = 'rtip',                                        # change to Bfrtip to add search box and buttons
                  keys=TRUE) )
   
   return(result)
