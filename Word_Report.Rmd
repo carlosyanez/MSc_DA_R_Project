@@ -61,13 +61,13 @@ column_height <- (1199/1500)*column_witdh   ### ration set up after checking png
 
 #set different sizes for charts's labels if app is running on shinyapps.io
 
-if(grepl( "shinyapps.io", params$domain, fixed = TRUE)){
-        s1 <-32
-        s2 <-24
+if(grepl( "127.0.0.1", params$domain, fixed = TRUE)){
+        s1 <-16
+        s2 <-10
         message(1)
 }else{
-      s1 <-16
-      s2 <-10
+      s1 <-32
+      s2 <-24
       message(2)
 }
 

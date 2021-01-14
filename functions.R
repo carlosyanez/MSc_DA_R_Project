@@ -12,18 +12,18 @@
 ############################### 
 ### LOAD PACKAGES  - IT WILL INSTALL THEM IF NOT FOUND
 
-packages <- c("lubridate",   #date manipulation (tidyverse)
-              "leaflet",     # interactive maps
-              "maps",        # used to create UK bounding box
-              "paletteer",   # colour palette wrapper for ggplot
-              "ggsci",       # colour palette
-              "showtext",    # add fonts
-              "ggiraph",     # interactive charts
-              "data.table",  #  function rbdinlist
-              "flextable",   # static table (for word document) 
-              "officer",     # functions for word document
-              "DT",          # interactive table
-              "rmarkdown")   # knitting with markdown
+packages <- c("lubridate",      #date manipulation (tidyverse)
+              "leaflet",        # interactive maps
+              "maps",           # used to create UK bounding box
+              "paletteer",      # colour palette wrapper for ggplot
+              "ggsci",          # colour palette
+              "showtext",       # add fonts
+              "ggiraph",        # interactive charts
+              "data.table",     #  function rbdinlist
+              "flextable",      # static table (for word document) 
+              "officer",        # functions for word document
+              "DT",             # interactive table
+              "rmarkdown")      # knitting with markdown
 
 
 
@@ -245,7 +245,8 @@ aggregate_data <- function(station_data){
 #' @param  time_value   Date,#day_of_week, #hour_of_week
 #' @param  interactive_flag whether output is ggplot or ggiraph object (default FALSE)
 #' @return plot
-plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_value,interactive_flag=FALSE,title_format="all",
+plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_value, 
+                      interactive_flag=FALSE,title_format="all",
                       size1=16,size2=10){
 
   if(chart_value=="raw") {
@@ -258,22 +259,22 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
   
   #long from labels
   
-  text_values <- tribble(~key,~text,
-                         "raw","",
-                         "daily","daily",
-                         "monthly","monthly",
-                         "Date","Date",
-                         "hour_of_day","Hour of the day",
-                         "day_of_week","Day of the week",
-                         "hour","Hour of the week",
-                         "mean","average",
-                         "max","max.",
-                         "min","min.",
-                         "wind_speed","Wind Speed",
-                         "air_temperature","Air Temperature",
-                         "rltv_hum","Relative Humidity",
-                         "visibility","Visibility",
-                         "Site_Name","Location"
+  text_values <- tribble(~key,~text,~unit,
+                         "raw","","",
+                         "daily","daily","",
+                         "monthly","monthly","",
+                         "Date","Date","",
+                         "hour_of_day","Hour of the day","",
+                         "day_of_week","Day of the week","",
+                         "hour","Hour of the week","",
+                         "mean","average","",
+                         "max","max.","",
+                         "min","min.","",
+                         "wind_speed","Wind Speed","kt",
+                         "air_temperature","Air Temperature","C",
+                         "rltv_hum","Relative Humidity","%",
+                         "visibility","Visibility","m",
+                         "Site_Name","Location",""
   )
   
   
@@ -281,6 +282,8 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
   
   x.value<-time_value
   y.value<- ifelse(stat_value=="none",meas_value,paste(stat_value,meas_value,sep="_"))
+  y.unit <- str_c(" [",text_values %>% filter(key==meas_value) %>% pull(unit),"]")
+  
   colour.value <-"Site_Name"
   colour.text <- "Location"
   if(title_format=="patchwork"){
@@ -292,7 +295,7 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
     title.text <- CapStr(title.text)
     
   }else{
-    title.text <- paste(text_values %>% filter(key==meas_value) %>% pull(text),
+    title.text <- str_c(text_values %>% filter(key==meas_value) %>% pull(text),
                         " (",
                         text_values %>% filter(key==chart_value) %>% pull(text),
                         " ",
@@ -303,9 +306,10 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
   title.text <- str_replace(title.text,"\\( \\)","")
   
   x.text <- text_values %>% filter(key==x.value) %>% pull(text)
-  y.text <- paste(text_values %>% filter(key==chart_value) %>% pull(text) %>% CapStr(.),
+  y.text <- str_c(text_values %>% filter(key==chart_value) %>% pull(text) %>% CapStr(.),
                   text_values %>% filter(key==stat_value) %>% pull(text),
                   text_values %>% filter(key==meas_value) %>% pull(text) %>% tolower(.),
+                  y.unit,
                   sep=" ")
   
   #obtain and format data to plot 
@@ -349,7 +353,7 @@ plot_data <- function(processed_data, chart_value,stat_value,meas_value,time_val
                             "\n",
                            text_values %>% filter(key==meas_value) %>% pull(text),
                             ": ",
-                           round(plotting_data$y_value,3))) %>%
+                           round(plotting_data$y_value,2),y.unit)) %>%
                     select(-Date_text)
                     
 
@@ -516,17 +520,22 @@ location_map <- function(sites,height_value=300){
   cp <- paletteer_d(colour_palette)
   sites_map <- sites %>% arrange(Site_Name)
   sites_map$colour <- cp[1:nrow(sites_map)]
-  map <- leaflet(height=height_value,options=leafletOptions(dragging=FALSE,zoomControl = FALSE,minZoom = 4,maxZoom = 4)) %>%
-    addProviderTiles("CartoDB") %>%
-    addPolygons(data = bounds, group = "Countries", 
-                color = "red", 
-                weight = 2,
-                fillOpacity = 0.0) %>%
-    addCircleMarkers(~Longitude, ~Latitude,data=sites_map,
-                     color=~colour,
-                     radius=5,
-                     fillOpacity = 0.9,
-                     popup = ~Site_Name)
+  map <- sites_map %>%
+         leaflet(height=height_value,
+                 options=leafletOptions(dragging=FALSE,
+                                        zoomControl = FALSE,
+                                        minZoom = 4,
+                                        maxZoom = 4)) %>%
+         addProviderTiles("CartoDB") %>%
+         addPolygons(data = bounds, group = "Countries", 
+                    color = "red", 
+                    weight = 2,
+                    fillOpacity = 0.0) %>%
+        addCircleMarkers(~Longitude, ~Latitude,
+                         color=~colour,
+                         radius=5,
+                         fillOpacity = 0.9,
+                         label = ~Site_Name) 
   
   
   sites

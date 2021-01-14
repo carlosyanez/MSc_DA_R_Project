@@ -53,6 +53,9 @@ shinyServer(function(input, output,session) {
             values$stat    <- stat_key[which(stat_key$key==input$statInput),]$value
             values$period  <- period_key[which(period_key$key==input$periodInput),]$value      
             values$tl      <- tl_key[which(tl_key$key==input$tlInput),]$value  
+            
+            
+            
             values$pS<- plot_data(values$processed_data,
                                   values$period,
                                   values$stat,
